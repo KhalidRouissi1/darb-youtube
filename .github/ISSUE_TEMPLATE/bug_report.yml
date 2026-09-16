@@ -1,0 +1,46 @@
+name: Bug report
+description: Report reproducible behavior in Darb
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the visible behavior and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open...
+        2. Click...
+        3. See...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Brave 1.x, Chrome 1xx, Edge 1xx
+    validations:
+      required: true
+  - type: dropdown
+    id: video_type
+    attributes:
+      label: YouTube page type
+      options:
+        - Standard watch page
+        - Live video
+        - Premiere
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Do not include private video data, tokens, or browsing history.

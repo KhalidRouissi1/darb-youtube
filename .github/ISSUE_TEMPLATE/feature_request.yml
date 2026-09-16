@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an improvement to the learning workflow
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What learning problem should Darb solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful solution.
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy or permission impact
+      description: Does this require new data, permissions, accounts, or services?
