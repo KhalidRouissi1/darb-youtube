@@ -16,6 +16,7 @@
 <p align="center">
   <a href="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml"><img src="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f97316" alt="MIT license" /></a>
+  <a href="https://buymeacoffee.com/khalidrouissi"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-support%20Darb-FFDD00?logo=buymeacoffee&amp;logoColor=000000" alt="Support Darb on Buy Me a Coffee" /></a>
   <img src="https://img.shields.io/badge/data-local%20only-16a34a" alt="Data stays local" />
   <img src="https://img.shields.io/badge/account-not%20required-334155" alt="No account required" />
 </p>
@@ -232,6 +233,13 @@ each pull request focused, and include reproduction or verification steps.
 
 Found a bug? [Open an issue](https://github.com/KhalidRouissi1/darb-youtube/issues/new/choose).
 Found a security problem? Follow [SECURITY.md](SECURITY.md).
+
+## Support Darb
+
+If Darb helps you finish a course, you can
+[support its development on Buy Me a Coffee](https://buymeacoffee.com/khalidrouissi).
+Your support helps cover browser-store fees and ongoing maintenance while Darb
+remains free and open source.
 
 ## License
 
