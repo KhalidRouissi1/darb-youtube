@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run zip
+
+      - name: Prepare release files
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+          if [[ "$VERSION" != "$PACKAGE_VERSION" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION"
+            exit 1
+          fi
+
+          SOURCE=".output/darb-${VERSION}-chrome.zip"
+          ARTIFACT=".output/darb-${VERSION}-chromium.zip"
+
+          test -f "$SOURCE"
+          mv "$SOURCE" "$ARTIFACT"
+
+          cd .output
+          sha256sum "darb-${VERSION}-chromium.zip" > "darb-${VERSION}-chromium.zip.sha256"
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## Install on Chrome, Brave, or Edge
+
+          1. Download `darb-*-chromium.zip` below.
+          2. Extract the ZIP into a permanent folder.
+          3. Open `chrome://extensions`, `brave://extensions`, or `edge://extensions`.
+          4. Enable **Developer mode**.
+          5. Select **Load unpacked** and choose the extracted folder.
+          6. Pin Darb to your browser toolbar.
+
+          Local installations do not update automatically. Return to the
+          [releases page](https://github.com/KhalidRouissi1/darb-youtube/releases)
+          when a new version is published.
+
+          Firefox users should install the signed version from Mozilla Add-ons
+          after the listing is approved.
+          EOF
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            .output/darb-*-chromium.zip \
+            .output/darb-*-chromium.zip.sha256 \
+            --verify-tag \
+            --title "Darb $GITHUB_REF_NAME" \
+            --notes-file release-notes.md

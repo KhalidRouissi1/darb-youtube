@@ -33,10 +33,30 @@ learning plan.
 Darb does. Choose how long you want to study each day and Darb turns the video
 into a course you can make steady progress through.
 
-## Install (60-second local setup)
+## Install
 
-Darb is preparing for the Chrome Web Store and Firefox Add-ons. Until those
-listings are live, install the current release directly from source.
+### Chrome, Brave, and Edge
+
+1. Download `darb-*-chromium.zip` from the
+   [latest GitHub release](https://github.com/KhalidRouissi1/darb-youtube/releases/latest).
+2. Extract the ZIP into a permanent folder. Do not delete this folder after
+   installation.
+3. Open `chrome://extensions`, `brave://extensions`, or `edge://extensions`.
+4. Enable **Developer mode**.
+5. Select **Load unpacked** and choose the extracted folder.
+6. Pin Darb to the browser toolbar.
+
+This short [video installation guide](https://www.youtube.com/watch?v=yNFwFQrc27Q)
+shows the same process. Local installations do not update automatically, so
+check the [releases page](https://github.com/KhalidRouissi1/darb-youtube/releases)
+for new versions.
+
+### Firefox
+
+Darb `0.1.0` has been submitted to Mozilla Add-ons. The signed installation
+link will be added here after Mozilla approves the listing.
+
+### Build from source
 
 ```bash
 git clone https://github.com/KhalidRouissi1/darb-youtube.git
@@ -45,15 +65,7 @@ npm ci
 npm run build
 ```
 
-Then:
-
-1. Open `chrome://extensions` in Chrome or `brave://extensions` in Brave.
-2. Enable **Developer mode**.
-3. Select **Load unpacked**.
-4. Choose the generated `.output/chrome-mv3` directory.
-5. Pin Darb to the browser toolbar.
-
-That is it. Open a YouTube video and select Darb.
+Load the generated `.output/chrome-mv3` directory as an unpacked extension.
 
 ## How it works
 
