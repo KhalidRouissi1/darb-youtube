@@ -20,9 +20,8 @@ export function showCompletionOverlay(
   host.style.pointerEvents = 'none';
 
   const shadow = host.attachShadow({ mode: 'open' });
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = `
-    <style>
+  const style = document.createElement('style');
+  style.textContent = `
       * { box-sizing: border-box; }
       .card {
         position: fixed;
@@ -63,37 +62,70 @@ export function showCompletionOverlay(
       .next:disabled { cursor: wait; opacity: .7; }
       .error { display: none; margin-top: 10px; color: #ff9f9f; font-size: 11px; }
       .error.visible { display: block; }
-    </style>
-    <section class="card" role="status" aria-live="polite">
-      <div class="row">
-        <div class="icon">✓</div>
-        <button class="close" aria-label="Close completion message">×</button>
-      </div>
-      <h2>${escapeHtml(response.course.completed ? 'Course completed!' : 'Session completed')}</h2>
-      <p>${escapeHtml(
-        response.course.completed
-          ? 'You finished every session. Excellent work.'
-          : response.nextSession
-            ? `Next session starts at ${formatTimestamp(
-                response.nextSession.startSeconds,
-              )}.`
-            : 'You reached the end. Earlier sessions are still unfinished.',
-      )}</p>
-      <div class="progress" style="--progress: ${response.progress.percentage}%"><div></div></div>
-      <div class="meta">
-        <span>${response.progress.completedSessions} of ${response.progress.totalSessions} sessions</span>
-        <span>${response.progress.percentage}%</span>
-      </div>
-      ${
-        response.nextSession
-          ? '<button class="next">Continue to next session</button>'
-          : ''
-      }
-      <p class="error" role="alert"></p>
-    </section>
   `;
 
-  shadow.append(wrapper);
+  const card = document.createElement('section');
+  card.className = 'card';
+  card.setAttribute('role', 'status');
+  card.setAttribute('aria-live', 'polite');
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const icon = document.createElement('div');
+  icon.className = 'icon';
+  icon.textContent = '✓';
+
+  const closeButton = document.createElement('button');
+  closeButton.className = 'close';
+  closeButton.type = 'button';
+  closeButton.setAttribute('aria-label', 'Close completion message');
+  closeButton.textContent = '×';
+  row.append(icon, closeButton);
+
+  const heading = document.createElement('h2');
+  heading.textContent = response.course.completed
+    ? 'Course completed!'
+    : 'Session completed';
+
+  const message = document.createElement('p');
+  message.textContent = response.course.completed
+    ? 'You finished every session. Excellent work.'
+    : response.nextSession
+      ? `Next session starts at ${formatTimestamp(
+          response.nextSession.startSeconds,
+        )}.`
+      : 'You reached the end. Earlier sessions are still unfinished.';
+
+  const progress = document.createElement('div');
+  progress.className = 'progress';
+  progress.style.setProperty('--progress', `${response.progress.percentage}%`);
+  progress.append(document.createElement('div'));
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const completedSessions = document.createElement('span');
+  completedSessions.textContent = `${response.progress.completedSessions} of ${response.progress.totalSessions} sessions`;
+  const percentage = document.createElement('span');
+  percentage.textContent = `${response.progress.percentage}%`;
+  meta.append(completedSessions, percentage);
+
+  card.append(row, heading, message, progress, meta);
+
+  if (response.nextSession) {
+    const nextButton = document.createElement('button');
+    nextButton.className = 'next';
+    nextButton.type = 'button';
+    nextButton.textContent = 'Continue to next session';
+    card.append(nextButton);
+  }
+
+  const errorMessage = document.createElement('p');
+  errorMessage.className = 'error';
+  errorMessage.setAttribute('role', 'alert');
+  card.append(errorMessage);
+
+  shadow.append(style, card);
   document.documentElement.append(host);
 
   shadow.querySelector('.close')?.addEventListener('click', () => host.remove());
@@ -148,13 +180,4 @@ export function showCompletionOverlay(
 
 export function removeCompletionOverlay(): void {
   document.getElementById(OVERLAY_ID)?.remove();
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 }

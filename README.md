@@ -118,7 +118,7 @@ Read the complete [privacy policy](docs/privacy.md).
 | Brave | Supported from source |
 | Microsoft Edge | Supported from source |
 | Other Chromium browsers | Expected to work through Manifest V3 |
-| Firefox | Build available; publication compatibility work in progress |
+| Firefox | Submission package ready for AMO |
 
 ## Development
 

@@ -4,7 +4,7 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react'],
-  manifest: {
+  manifest: ({ browser }) => ({
     name: 'Darb',
     description:
       'Turn long YouTube videos into structured, trackable daily courses.',
@@ -25,7 +25,23 @@ export default defineConfig({
         32: 'icon-32.png',
       },
     },
-  },
+    ...(browser === 'firefox'
+      ? {
+          browser_specific_settings: {
+            gecko: {
+              id: 'darb-youtube@khalidrouissi1.github.io',
+              strict_min_version: '140.0',
+              data_collection_permissions: {
+                required: ['none'],
+              },
+            },
+            gecko_android: {
+              strict_min_version: '142.0',
+            },
+          },
+        }
+      : {}),
+  }),
   vite: () => ({
     plugins: [tailwindcss()],
   }),
