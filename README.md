@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml"><img src="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/KhalidRouissi1/darb-youtube/releases/latest"><img src="https://img.shields.io/github/v/release/KhalidRouissi1/darb-youtube?color=f97316" alt="Latest GitHub release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f97316" alt="MIT license" /></a>
   <a href="https://buymeacoffee.com/khalidrouissi"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-support%20Darb-FFDD00?logo=buymeacoffee&amp;logoColor=000000" alt="Support Darb on Buy Me a Coffee" /></a>
   <img src="https://img.shields.io/badge/data-local%20only-16a34a" alt="Data stays local" />
@@ -127,9 +128,9 @@ Read the complete [privacy policy](docs/privacy.md).
 
 | Browser | Status |
 | --- | --- |
-| Chrome | Supported from source; store package ready |
-| Brave | Supported from source |
-| Microsoft Edge | Supported from source |
+| Chrome | Installable from GitHub Releases |
+| Brave | Installable from GitHub Releases |
+| Microsoft Edge | Installable from GitHub Releases |
 | Other Chromium browsers | Expected to work through Manifest V3 |
 | Firefox | Submission package ready for AMO |
 
