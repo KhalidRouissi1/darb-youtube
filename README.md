@@ -1,28 +1,126 @@
-# Darb · درب
+<p align="center">
+  <img src="public/icon-128.png" width="96" alt="Darb logo" />
+</p>
 
-Turn long YouTube videos into structured, trackable daily courses.
+<h1 align="center">Darb · درب</h1>
 
-Darb is an open-source Manifest V3 browser extension for Chrome, Edge,
-Brave, and other Chromium browsers. It divides educational YouTube videos into
-manageable daily sessions, resumes at the correct timestamp, pauses at session
-boundaries, and stores progress locally.
+<p align="center">
+  <strong>Turn the YouTube course you saved into the course you finish.</strong>
+</p>
 
-## Features
+<p align="center">
+  Darb splits long YouTube videos into focused learning sessions, remembers
+  where you stopped, and brings you back to the right lesson every time.
+</p>
 
-- Detects the active YouTube video's title, channel, thumbnail, and duration.
-- Creates 15, 20, 30, 45, 60, or custom-minute learning sessions.
-- Handles duplicate videos with open-existing and create-another choices.
-- Opens each session at its exact YouTube timestamp.
-- Pauses and completes a session at its configured end time.
-- Resumes incomplete sessions from their last saved checkpoint.
-- Tracks completion percentage, watched time, and remaining time.
-- Includes course, session detail, today, activity, and settings screens.
-- Supports manual session completion, dark mode, and optional notifications.
-- Requires no account, backend, analytics, transcript, or external AI API.
+<p align="center">
+  <a href="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml"><img src="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f97316" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/data-local%20only-16a34a" alt="Data stays local" />
+  <img src="https://img.shields.io/badge/account-not%20required-334155" alt="No account required" />
+</p>
 
-Playlist conversion and AI features are intentionally outside the MVP.
+## The problem
 
-## Install for development
+A six-hour YouTube course looks useful when you save it. It looks impossible
+when you try to finish it.
+
+You lose your timestamp, forget which lesson comes next, open another tab, and
+eventually start over. YouTube remembers the video; it does not give you a
+learning plan.
+
+Darb does. Choose how long you want to study each day and Darb turns the video
+into a course you can make steady progress through.
+
+## Install (60-second local setup)
+
+Darb is preparing for the Chrome Web Store and Firefox Add-ons. Until those
+listings are live, install the current release directly from source.
+
+```bash
+git clone https://github.com/KhalidRouissi1/darb-youtube.git
+cd darb-youtube
+npm ci
+npm run build
+```
+
+Then:
+
+1. Open `chrome://extensions` in Chrome or `brave://extensions` in Brave.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose the generated `.output/chrome-mv3` directory.
+5. Pin Darb to the browser toolbar.
+
+That is it. Open a YouTube video and select Darb.
+
+## How it works
+
+### 1. Turn a video into a course
+
+Open a regular YouTube video, select Darb, and choose a daily session length:
+15, 20, 30, 45, 60, or any custom number of minutes.
+
+### 2. Learn one session at a time
+
+Darb opens the correct timestamp, tracks the active session, and pauses at its
+boundary. Your course page shows what is complete and what remains.
+
+### 3. Continue from where you actually stopped
+
+Leave halfway through a session and come back later. Darb resumes from the
+saved checkpoint in that session instead of sending you back to the beginning
+of the course.
+
+## What Darb gives you
+
+- **A realistic plan.** Long videos become small, non-overlapping sessions.
+- **Reliable continuation.** Each session keeps its own resume checkpoint.
+- **Visible progress.** See completed sessions, watched time, and time left.
+- **The correct next step.** Continue from your current place in the course.
+- **YouTube-native playback.** Videos stay on YouTube; Darb controls the normal
+  HTML5 player only during an active learning session.
+- **A useful dashboard anywhere.** Open Darb from any website to see all your
+  courses, today's work, activity, and settings.
+- **Local ownership.** Your courses and progress stay inside your browser.
+- **No account or subscription.** Darb has no backend, analytics, advertising,
+  transcript collection, or external AI service.
+
+## A course, not a playlist
+
+Darb is deliberately focused on one job: helping you finish long educational
+videos.
+
+It does not download videos, replace YouTube, or pretend every minute watched
+is meaningful progress. It creates a clear path through the material and keeps
+that path intact across tabs, sessions, and browser restarts.
+
+## Privacy by construction
+
+Darb works without a server. It stores the following in
+`chrome.storage.local`:
+
+- YouTube video details needed to display the course
+- Session timestamps and completion dates
+- Resume checkpoints and overall progress
+- Your Darb settings
+
+Nothing is sent to Darb's developer. Deleting a course removes its local plan
+and progress; **Reset all local data** removes every Darb storage key.
+
+Read the complete [privacy policy](docs/privacy.md).
+
+## Browser support
+
+| Browser | Status |
+| --- | --- |
+| Chrome | Supported from source; store package ready |
+| Brave | Supported from source |
+| Microsoft Edge | Supported from source |
+| Other Chromium browsers | Expected to work through Manifest V3 |
+| Firefox | Build available; publication compatibility work in progress |
+
+## Development
 
 Requirements:
 
@@ -30,124 +128,90 @@ Requirements:
 - npm
 - A Chromium browser
 
+Start the development browser:
+
 ```bash
-git clone https://github.com/KhalidRouissi1/darb-youtube.git
-cd darb
-npm install
+npm ci
 npm run dev
 ```
 
-This development environment is configured to launch the installed Brave
-binary at `/usr/bin/brave`. Change `binaries.chrome` in
-`web-ext.config.ts` if your Chromium executable is elsewhere.
+The development configuration currently launches Brave from `/usr/bin/brave`.
+If your browser lives elsewhere, update `web-ext.config.ts`.
 
-WXT launches a temporary browser profile with Darb installed. Keep the
-terminal process running for hot reload.
-
-## Use Darb
-
-1. Open a standard `youtube.com/watch` video.
-2. Open the browser's Extensions menu and pin Darb if desired.
-3. Click Darb.
-4. Choose a daily session duration.
-5. Click **Create course**.
-6. Start the first session or open the dashboard.
-
-When a session reaches its end, Darb applies your pause and completion
-settings once, then releases control of the player. Incomplete sessions resume
-from their last saved checkpoint. After a browser restart, select **Continue**
-to establish a fresh tracked tab.
-
-If the popup cannot connect after first installing the extension, reload the
-existing YouTube tab once.
-
-## Production build
+Run the complete verification suite:
 
 ```bash
 npm run typecheck
-npm run test
+npm test
 npm run build
 ```
 
-The unpacked extension is generated at:
-
-```text
-.output/chrome-mv3/
-```
-
-To install it manually:
-
-1. Open `chrome://extensions` or `brave://extensions`.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select `.output/chrome-mv3/`.
-
-Create a store-ready archive with:
+Create the Chrome Web Store archive:
 
 ```bash
 npm run zip
 ```
 
+Build the Firefox package:
+
+```bash
+npm run build:firefox
+```
+
 ## Architecture
+
+Darb is a local-first browser extension built with WXT, React, TypeScript,
+Tailwind CSS, Zustand, and Zod.
+
+```text
+YouTube tab
+  → content script reads video state and controls the player
+  → background worker owns the active learning session
+  → validated repository saves progress in browser storage
+  → popup and dashboard react to storage changes
+```
+
+The important rule is that UI surfaces send intentions; they do not rewrite
+course data independently. The background worker serializes persistent changes,
+and every stored value is validated when read. Activation IDs and sequence
+numbers prevent stale tabs from overwriting newer progress.
+
+Read the [architecture guide](docs/architecture.md) for the complete runtime
+flow and reliability decisions.
+
+## Project structure
 
 ```text
 src/
 ├── components/          Shared UI and brand components
 ├── entrypoints/
-│   ├── popup/           Active-video detection and course creation
-│   ├── dashboard/       Course, detail, activity, and settings UI
-│   ├── background.ts    MV3 orchestration and tab/notification handling
+│   ├── popup/           Video detection and course creation
+│   ├── dashboard/       Courses, activity, and settings
+│   ├── background.ts    Tab orchestration and persistent mutations
 │   └── content.ts       YouTube metadata and playback bridge
-├── features/
-│   ├── courses/         Course store, cards, and detail view
-│   └── settings/        Local extension preferences
+├── features/            Course and settings features
 ├── lib/
 │   ├── messaging/       Validated runtime message contracts
-│   ├── storage/         Chrome Storage repository
-│   ├── youtube/         Selectors, metadata, SPA navigation, and player logic
-│   ├── validation/      Zod schemas for stored and page-derived data
-│   └── utils/           Sessions, progress, and time formatting
+│   ├── storage/         Browser storage repository
+│   ├── youtube/         Player, metadata, and navigation logic
+│   ├── validation/      Runtime schemas
+│   └── utils/           Session and progress calculations
 └── types/               Domain types
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the runtime data flow and
-reliability decisions.
+## Engineering principles
 
-## Manifest permissions
-
-- `storage`: saves courses, settings, and active playback locally.
-- `activeTab`: reads the current tab only after the user opens Darb.
-- YouTube content-script match: runs only on `*.youtube.com`.
-- `notifications` (optional): requested only when the user enables it.
-
-Darb does not request broad access to unrelated websites.
-
-## Testing
-
-```bash
-npm run typecheck
-npm run test
-npm run build
-```
-
-The unit suite covers session generation, final short sessions, time
-formatting, progress, course completion, next-session selection, storage
-serialization, legacy checkpoint migration, duplicate handling, corrupt data,
-YouTube URL parsing, playback boundaries, and restart recovery.
-
-## Screenshots
-
-Screenshots are kept out of source until the first store submission so they
-reflect the packaged release UI. The dashboard, popup, course detail, and
-completion overlay are all included in the production build.
-
-## Privacy
-
-All course and playback data is stored in `chrome.storage.local`. Darb does
-not download or rehost videos, collect transcripts, send viewing history to a
-server, or run analytics. See [docs/privacy.md](docs/privacy.md).
+- Request the smallest browser permissions that can do the job.
+- Keep user data local unless a future feature receives explicit consent.
+- Treat YouTube navigation, tab ownership, and browser restarts as normal
+  behavior rather than edge cases.
+- Validate browser messages and stored data at runtime.
+- Keep session calculations pure and covered by focused tests.
+- Prefer a small reliable learning tool over a crowded feature list.
 
 ## Roadmap
+
+The immediate goal is a stable Chrome and Firefox release. After that:
 
 - YouTube chapter-aware splitting
 - Playlist courses
@@ -155,15 +219,20 @@ server, or run analytics. See [docs/privacy.md](docs/privacy.md).
 - Learning streaks
 - Markdown and Notion export
 - Optional cloud synchronization
-- Bring-your-own AI provider integrations
+- Bring-your-own AI integrations
 
-These features will be considered only after the local MVP is stable.
+Have a different priority? Open a
+[feature request](https://github.com/KhalidRouissi1/darb-youtube/issues/new/choose)
+and describe the learning problem first.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). By participating, you agree to follow
-the [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), keep
+each pull request focused, and include reproduction or verification steps.
+
+Found a bug? [Open an issue](https://github.com/KhalidRouissi1/darb-youtube/issues/new/choose).
+Found a security problem? Follow [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE)
+Darb is open source under the [MIT License](LICENSE).
