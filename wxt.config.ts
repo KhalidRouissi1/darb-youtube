@@ -8,7 +8,7 @@ export default defineConfig({
     name: 'Darb',
     description:
       'Turn long YouTube videos into structured, trackable daily courses.',
-    version: '0.1.0',
+    version: '0.1.1',
     homepage_url: 'https://github.com/KhalidRouissi1/darb-youtube',
     icons: {
       16: 'icon-16.png',
@@ -16,7 +16,7 @@ export default defineConfig({
       48: 'icon-48.png',
       128: 'icon-128.png',
     },
-    permissions: ['activeTab', 'storage'],
+    permissions: ['storage'],
     optional_permissions: ['notifications'],
     action: {
       default_title: 'Open Darb',
