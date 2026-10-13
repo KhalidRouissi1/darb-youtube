@@ -9,9 +9,11 @@ import {
 } from '@/lib/validation/schemas';
 import type { Course } from '@/types/course';
 import type { DarbSettings } from '@/types/settings';
-import type { ActivePlayback } from '@/types/youtube';
+import { sameVideo } from '@/lib/video/platforms';
+import type { VideoPlatform } from '@/types/video';
+import type { ActivePlayback } from '@/types/video';
 
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 export interface CourseRepository {
   getCourses(): Promise<Course[]>;
@@ -19,7 +21,7 @@ export interface CourseRepository {
   saveCourse(course: Course): Promise<void>;
   deleteCourse(id: string): Promise<void>;
   updateCourse(course: Course): Promise<void>;
-  findByVideoId(videoId: string): Promise<Course[]>;
+  findByVideoId(videoId: string, platform?: VideoPlatform): Promise<Course[]>;
 }
 
 export class StorageError extends Error {
@@ -77,14 +79,18 @@ class ChromeCourseRepository implements CourseRepository {
     await writeCourses(courses.filter((course) => course.id !== id));
   }
 
-  async findByVideoId(videoId: string): Promise<Course[]> {
+  async findByVideoId(
+    videoId: string,
+    platform?: VideoPlatform,
+  ): Promise<Course[]> {
     const courses = await this.getCourses();
-    return courses.filter((course) => course.videoId === videoId);
+    return courses.filter((course) =>
+      sameVideo(course, { videoId, ...(platform ? { platform } : {}) }),
+    );
   }
 }
 
-export const courseRepository: CourseRepository =
-  new ChromeCourseRepository();
+export const courseRepository: CourseRepository = new ChromeCourseRepository();
 
 export async function getSettings(): Promise<DarbSettings> {
   try {
@@ -101,9 +107,7 @@ export async function getSettings(): Promise<DarbSettings> {
   }
 }
 
-export async function saveSettings(
-  settings: DarbSettings,
-): Promise<void> {
+export async function saveSettings(settings: DarbSettings): Promise<void> {
   try {
     const validatedSettings = settingsSchema.parse(settings);
     await browser.storage.local.set({
@@ -117,9 +121,7 @@ export async function saveSettings(
 export async function getActivePlayback(): Promise<ActivePlayback | null> {
   try {
     await migrateStorage();
-    const stored = await browser.storage.local.get(
-      STORAGE_KEYS.activePlayback,
-    );
+    const stored = await browser.storage.local.get(STORAGE_KEYS.activePlayback);
     const value = stored[STORAGE_KEYS.activePlayback];
 
     return value === undefined ? null : activePlaybackSchema.parse(value);
@@ -128,11 +130,20 @@ export async function getActivePlayback(): Promise<ActivePlayback | null> {
   }
 }
 
+let migration: Promise<void> | null = null;
 async function migrateStorage(): Promise<void> {
+  if (!migration)
+    migration = performMigration().finally(() => {
+      migration = null;
+    });
+  await migration;
+}
+async function performMigration(): Promise<void> {
   const stored = await browser.storage.local.get([
     STORAGE_KEYS.storageVersion,
     STORAGE_KEYS.courses,
     STORAGE_KEYS.activePlayback,
+    STORAGE_KEYS.legacyBackup,
   ]);
   if (stored[STORAGE_KEYS.storageVersion] === STORAGE_VERSION) return;
 
@@ -141,24 +152,33 @@ async function migrateStorage(): Promise<void> {
     | { courseId?: string; sessionId?: string; lastKnownSeconds?: number }
     | undefined;
 
-  if (legacyCourses !== undefined) {
+  if (
+    legacyCourses !== undefined &&
+    stored[STORAGE_KEYS.legacyBackup] === undefined
+  ) {
     // Keep the original value so a future recovery tool can inspect it.
-    await browser.storage.local.set({ [STORAGE_KEYS.legacyBackup]: {
-      courses: legacyCourses,
-      activePlayback: stored[STORAGE_KEYS.activePlayback],
-    }});
+    await browser.storage.local.set({
+      [STORAGE_KEYS.legacyBackup]: {
+        courses: legacyCourses,
+        activePlayback: stored[STORAGE_KEYS.activePlayback],
+      },
+    });
   }
 
   const parsed = coursesSchema.safeParse(legacyCourses ?? []);
   if (!parsed.success) {
     // Never overwrite unreadable user data. A surfaced read error is safer.
-    throw toStorageError('Saved courses need recovery and were left untouched.', parsed.error);
+    throw toStorageError(
+      'Saved courses need recovery and were left untouched.',
+      parsed.error,
+    );
   }
 
   const courses = parsed.data.map((course) => ({
     ...course,
     sessions: course.sessions.map((session) => {
       if (
+        stored[STORAGE_KEYS.storageVersion] !== 2 &&
         legacyPlayback?.courseId === course.id &&
         legacyPlayback.sessionId === session.id &&
         typeof legacyPlayback.lastKnownSeconds === 'number' &&

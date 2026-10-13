@@ -1,11 +1,11 @@
+import { PLATFORM_LABELS } from '@/lib/video/platforms';
+import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
+import { BookOpen, Clock3, ListVideo, Play, Trash2 } from 'lucide-react';
 import {
-  BookOpen,
-  Clock3,
-  ListVideo,
-  Play,
-  Trash2,
-} from 'lucide-react';
-import { calculateCourseProgress, getCourseStatus, getCurrentSession } from '@/lib/utils/courses';
+  calculateCourseProgress,
+  getCourseStatus,
+  getCurrentSession,
+} from '@/lib/utils/courses';
 import { formatDuration, formatTimestamp } from '@/lib/utils/time';
 import type { Course } from '@/types/course';
 
@@ -39,8 +39,7 @@ export function CourseCard({
         onClick={() => onView(course.id)}
         type="button"
       >
-        <img
-          alt=""
+        <VideoThumbnail
           className="size-full object-cover transition duration-500 group-hover:scale-[1.025]"
           src={course.thumbnailUrl}
         />
@@ -66,7 +65,8 @@ export function CourseCard({
               {course.title}
             </h2>
             <p className="mt-1 truncate text-[11px] text-muted dark:text-white/45">
-              {course.channelName ?? 'YouTube course'}
+              {course.channelName ??
+                `${PLATFORM_LABELS[course.platform ?? 'youtube']} course`}
             </p>
           </div>
           <button
@@ -100,7 +100,11 @@ export function CourseCard({
           <p className="mt-3 text-xs font-semibold text-ink dark:text-white">
             Session {currentSession.index + 1} of {course.sessions.length}
             <span className="font-normal text-muted dark:text-white/45">
-              {' '}· Resume at {formatTimestamp(currentSession.resumeSeconds ?? currentSession.startSeconds)}
+              {' '}
+              · Resume at{' '}
+              {formatTimestamp(
+                currentSession.resumeSeconds ?? currentSession.startSeconds,
+              )}
             </span>
           </p>
         )}

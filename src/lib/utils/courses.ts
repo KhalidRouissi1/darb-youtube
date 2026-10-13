@@ -1,10 +1,12 @@
+import { sameVideo } from '@/lib/video/platforms';
+import type { VideoPlatform } from '@/types/video';
 import type {
   Course,
   CourseProgress,
   CourseSession,
   CourseStatus,
 } from '@/types/course';
-import type { YouTubeVideoMetadata } from '@/types/youtube';
+import type { VideoMetadata } from '@/types/video';
 
 interface GenerateSessionsInput {
   courseId: string;
@@ -58,7 +60,7 @@ export function generateSessions({
 }
 
 export function createCourse(
-  video: YouTubeVideoMetadata,
+  video: VideoMetadata,
   sessionLengthMinutes: number,
   options: {
     id?: string;
@@ -79,10 +81,11 @@ export function createCourse(
 
   return {
     id,
+    platform: video.platform ?? 'youtube',
     videoId: video.videoId,
     videoUrl: video.videoUrl,
     title: video.title,
-    thumbnailUrl: video.thumbnailUrl,
+    ...(video.thumbnailUrl ? { thumbnailUrl: video.thumbnailUrl } : {}),
     ...(video.channelName ? { channelName: video.channelName } : {}),
     durationSeconds: video.durationSeconds,
     sessionLengthMinutes,
@@ -96,7 +99,7 @@ export function createCourse(
 
 export function rebuildCourseFromVideo(
   course: Course,
-  video: YouTubeVideoMetadata,
+  video: VideoMetadata,
   now = new Date().toISOString(),
 ): Course {
   const rebuilt = createCourse(video, course.sessionLengthMinutes, {
@@ -180,8 +183,7 @@ export function setSessionCompletion(
   return {
     ...course,
     sessions,
-    currentSessionIndex:
-      nextIndex ?? Math.max(0, course.sessions.length - 1),
+    currentSessionIndex: nextIndex ?? Math.max(0, course.sessions.length - 1),
     completed: nextIndex === null,
     updatedAt: now,
   };
@@ -192,7 +194,9 @@ export function selectCourseSession(
   sessionId: string,
   now = new Date().toISOString(),
 ): Course {
-  const session = course.sessions.find((candidate) => candidate.id === sessionId);
+  const session = course.sessions.find(
+    (candidate) => candidate.id === sessionId,
+  );
   if (!session) {
     throw new Error('The requested session no longer exists.');
   }
@@ -221,12 +225,13 @@ export function completeSessionAndAdvance(
   }
 
   const completedCourse = setSessionCompletion(course, sessionId, true, now);
-  const nextSession = [...completedCourse.sessions]
-    .sort((first, second) => first.index - second.index)
-    .find(
-      (candidate) =>
-        candidate.index > currentSession.index && !candidate.completed,
-    ) ?? null;
+  const nextSession =
+    [...completedCourse.sessions]
+      .sort((first, second) => first.index - second.index)
+      .find(
+        (candidate) =>
+          candidate.index > currentSession.index && !candidate.completed,
+      ) ?? null;
   const currentSessionIndex = nextSession?.index ?? currentSession.index;
 
   return {
@@ -257,8 +262,9 @@ export function getCourseStatus(course: Course): CourseStatus {
 export function findDuplicateCourses(
   courses: Course[],
   videoId: string,
+  platform: VideoPlatform = 'youtube',
 ): Course[] {
-  return courses.filter((course) => course.videoId === videoId);
+  return courses.filter((course) => sameVideo(course, { platform, videoId }));
 }
 
 export function getCurrentSession(course: Course): CourseSession {

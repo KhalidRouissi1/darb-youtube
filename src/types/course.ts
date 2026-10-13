@@ -1,3 +1,5 @@
+import type { VideoPlatform } from './video';
+
 export type CourseStatus = 'not-started' | 'in-progress' | 'completed';
 
 export interface CourseSession {
@@ -14,11 +16,12 @@ export interface CourseSession {
 }
 
 export interface Course {
+  platform?: VideoPlatform;
   id: string;
   videoId: string;
   videoUrl: string;
   title: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string | undefined;
   channelName?: string | undefined;
   durationSeconds: number;
   sessionLengthMinutes: number;

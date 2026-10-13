@@ -1,9 +1,13 @@
+import {
+  hasPlatformAccess,
+  requestPlatformAccess,
+  removePlatformAccess,
+} from '@/lib/video/access';
+import { PLATFORM_LABELS } from '@/lib/video/platforms';
 import { useEffect, useState } from 'react';
 import { Bell, Moon, RotateCcw, Save, ShieldCheck } from 'lucide-react';
 import { browser } from 'wxt/browser';
-import {
-  getSettings,
-} from '@/lib/storage/repository';
+import { getSettings } from '@/lib/storage/repository';
 import { DEFAULT_SETTINGS } from '@/lib/settings/defaults';
 import type { DarbSettings } from '@/types/settings';
 
@@ -12,11 +16,29 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ onReset }: SettingsPanelProps) {
-  const [settings, setSettings] =
-    useState<DarbSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<DarbSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [platformAccess, setPlatformAccess] = useState({
+    x: false,
+    facebook: false,
+  });
   const [confirmReset, setConfirmReset] = useState(false);
+
+  useEffect(() => {
+    const refreshAccess = () => {
+      void Promise.all([hasPlatformAccess('x'), hasPlatformAccess('facebook')])
+        .then(([x, facebook]) => setPlatformAccess({ x, facebook }))
+        .catch(() => setMessage('Unable to check platform access.'));
+    };
+    refreshAccess();
+    browser.permissions.onAdded.addListener(refreshAccess);
+    browser.permissions.onRemoved.addListener(refreshAccess);
+    return () => {
+      browser.permissions.onAdded.removeListener(refreshAccess);
+      browser.permissions.onRemoved.removeListener(refreshAccess);
+    };
+  }, []);
 
   useEffect(() => {
     void getSettings()
@@ -51,8 +73,12 @@ export function SettingsPanel({ onReset }: SettingsPanelProps) {
     };
 
     try {
-      const response = await browser.runtime.sendMessage({ type: 'SAVE_SETTINGS', settings: updated });
-      if (!response?.ok) throw new Error(response?.error ?? 'Unable to save settings.');
+      const response = await browser.runtime.sendMessage({
+        type: 'SAVE_SETTINGS',
+        settings: updated,
+      });
+      if (!response?.ok)
+        throw new Error(response?.error ?? 'Unable to save settings.');
       setSettings(updated);
 
       if (key === 'darkMode') {
@@ -72,8 +98,11 @@ export function SettingsPanel({ onReset }: SettingsPanelProps) {
     }
 
     try {
-      const response = await browser.runtime.sendMessage({ type: 'RESET_DATA' });
-      if (!response?.ok) throw new Error(response?.error ?? 'Unable to reset local data.');
+      const response = await browser.runtime.sendMessage({
+        type: 'RESET_DATA',
+      });
+      if (!response?.ok)
+        throw new Error(response?.error ?? 'Unable to reset local data.');
       setSettings(DEFAULT_SETTINGS);
       document.documentElement.classList.remove('dark');
       setConfirmReset(false);
@@ -129,7 +158,7 @@ export function SettingsPanel({ onReset }: SettingsPanelProps) {
         </SettingRow>
 
         <SettingRow
-          description="Stop YouTube when the current learning block ends."
+          description="Stop the video when the current learning block ends."
           icon={<ShieldCheck size={16} />}
           title="Pause at session end"
         >
@@ -157,7 +186,7 @@ export function SettingsPanel({ onReset }: SettingsPanelProps) {
         </SettingRow>
 
         <SettingRow
-          description="Show course progress over the YouTube page after a session."
+          description="Show course progress over the video page after a session."
           icon={<ShieldCheck size={16} />}
           title="Completion overlay"
         >
@@ -195,6 +224,44 @@ export function SettingsPanel({ onReset }: SettingsPanelProps) {
             onChange={(checked) => void updateSetting('darkMode', checked)}
           />
         </SettingRow>
+      </section>
+
+      <section className="mt-6 rounded-[20px] border border-[#e5e5eb] bg-white p-5 dark:border-white/10 dark:bg-[#202028]">
+        <h2 className="text-sm font-semibold">Additional video platforms</h2>
+        <p className="mt-2 text-xs text-muted">
+          Experimental: individual recorded video pages only. Enable access for
+          each platform you want to use.
+        </p>
+        {(['x', 'facebook'] as const).map((platform) => (
+          <SettingRow
+            key={platform}
+            title={PLATFORM_LABELS[platform]}
+            description="Video details and progress stay in your browser. Feeds and live streams are unsupported."
+            icon={<ShieldCheck size={16} />}
+          >
+            <button
+              type="button"
+              className="rounded-lg bg-brand-50 px-4 py-2 text-xs font-semibold text-brand-600"
+              onClick={() => {
+                const action = platformAccess[platform]
+                  ? removePlatformAccess(platform)
+                  : requestPlatformAccess(platform);
+                void action
+                  .then((ok) => {
+                    if (!ok) setMessage('The permission change was declined.');
+                    else
+                      setMessage(
+                        'Platform access updated. Open a dedicated video page, then click Darb.',
+                      );
+                  })
+                  .catch(() => setMessage('Unable to update platform access.'));
+              }}
+            >
+              {platformAccess[platform] ? 'Disable' : 'Enable'}{' '}
+              {PLATFORM_LABELS[platform]}
+            </button>
+          </SettingRow>
+        ))}
       </section>
 
       <section className="mt-6 rounded-[20px] border border-red-200 bg-white p-5 dark:border-red-900/50 dark:bg-[#202028]">

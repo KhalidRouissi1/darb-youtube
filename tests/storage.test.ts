@@ -65,7 +65,7 @@ describe('course storage', () => {
 
     await saveActivePlayback(playback);
 
-    expect(await getActivePlayback()).toEqual(playback);
+    expect(await getActivePlayback()).toEqual({ ...playback, platform: 'youtube' });
   });
 
   it('migrates a legacy playback checkpoint into its session', async () => {

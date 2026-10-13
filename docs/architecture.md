@@ -7,9 +7,9 @@ TypeScript, Tailwind CSS, Zustand, and Zod.
 
 ### Popup
 
-The popup queries the active tab and requests metadata from the YouTube content
+The popup queries the active tab and requests metadata from the selected platform content
 script. It generates sessions with pure utilities, validates the course, and
-saves it through the storage repository.
+sends it to the background worker for validated persistence.
 
 ### Dashboard
 
@@ -19,20 +19,22 @@ in another tab. Course mutations are validated before persistence.
 
 ### Content script
 
-The content script runs only on YouTube. YouTube selectors, metadata fallbacks,
-SPA navigation detection, playback boundaries, and the completion overlay are
-isolated under `src/lib/youtube`.
+The YouTube content script is static. X/Facebook scripts are dynamically
+registered after optional host access is granted. `src/lib/platforms/adapter.ts`
+resolves platform players and metadata. `src/lib/video` owns common tracking,
+overlays, URL identity, permissions, and script registration. YouTube metadata
+fallbacks remain under `src/lib/youtube`. DOM code does not run in the worker.
 
 ### Background service worker
 
-The worker opens dashboard and YouTube tabs, establishes the active playback
+The worker opens dashboard and video tabs, establishes the active playback
 record, marks sessions complete, advances to the next incomplete session, and
 sends optional notifications.
 
 ## Course creation flow
 
 ```text
-YouTube tab
+Supported video tab
   → popup requests metadata
   → Zod validates metadata
   → session generator creates non-overlapping ranges
@@ -45,12 +47,13 @@ YouTube tab
 ```text
 Continue Learning
   → background selects a tab and establishes one owned activation
-  → YouTube opens with ?t=<start>s
+  → matching tab is reused, or the canonical page opens
+  → content script seeks after verifying the correct player
   → content script restores the active session
   → timeupdate reports a session checkpoint through the background worker
   → session end pauses playback
   → background completes the session and releases the tab owner
-  → YouTube overlay and dashboard show updated progress
+  → Completion overlay and dashboard show updated progress
 ```
 
 ## Reliability
@@ -62,9 +65,10 @@ Continue Learning
 - Position reports include an activation ID and sequence number, so stale tabs
   and out-of-order writes cannot overwrite a newer session.
 - The background worker serializes persistent mutations. Popup, dashboard, and
-  YouTube scripts send intents rather than rewriting course data directly.
-- YouTube SPA changes are detected through `yt-navigate-finish`, `popstate`, a
-  MutationObserver, and a URL fallback timer.
+  content scripts send intents rather than rewriting course data directly.
+- Navigation/player changes are detected through a bounded polling interval,
+  `popstate`, and YouTube's `yt-navigate-finish` event. Old tracker listeners are
+  aborted when the player or identity changes.
 - Completing a session is idempotent and detaches the tracker before progress
   is changed.
 - Opening an already completed session does not alter its completion state.
@@ -72,6 +76,15 @@ Continue Learning
 
 ## Permission policy
 
-The extension requests only local storage and temporary active-tab access.
-YouTube is the sole content-script host. Notifications remain optional and are
-requested in response to a settings action.
+The extension requests storage, active-tab access, and scripting for packaged
+script injection. YouTube is the only static content-script host. X and Facebook
+hosts are optional; enable buttons request the selected platform only. The
+background synchronizes registrations and stops revoked-platform activations.
+Notifications remain optional.
+
+Persisted course identity is `(platform, videoId)`. Storage version 3 defaults
+legacy records to YouTube, preserves durable session checkpoints and the
+original recovery backup, and clears transient activation records. Every video
+URL is validated against supported platform hosts/routes and its identity.
+
+See [multi-platform QA](multi-platform-qa.md) for evidence and release gates.

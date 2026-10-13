@@ -1,3 +1,4 @@
+import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -20,26 +21,28 @@ import type {
   RuntimeMessageResponse,
   VideoMetadataResponse,
 } from '@/lib/messaging/messages';
-import {
-  courseRepository,
-  getSettings,
-} from '@/lib/storage/repository';
-import {
-  createCourse,
-  rebuildCourseFromVideo,
-} from '@/lib/utils/courses';
+import { courseRepository, getSettings } from '@/lib/storage/repository';
+import { createCourse, rebuildCourseFromVideo } from '@/lib/utils/courses';
 import { formatDuration } from '@/lib/utils/time';
+import {
+  parseVideoUrl,
+  platformFromUrl,
+  PLATFORM_LABELS,
+} from '@/lib/video/platforms';
+import { hasPlatformAccess, requestPlatformAccess } from '@/lib/video/access';
+import { ensurePlatformBridge } from '@/lib/video/registration';
 import type { Course } from '@/types/course';
-import type { YouTubeVideoMetadata } from '@/types/youtube';
+import type { VideoMetadata } from '@/types/video';
 
 const SESSION_LENGTHS = [15, 20, 30, 45, 60] as const;
 
 type PopupState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
+  | { status: 'permission'; platform: 'x' | 'facebook' }
   | {
       status: 'ready';
-      video: YouTubeVideoMetadata;
+      video: VideoMetadata;
       duplicates: Course[];
     }
   | { status: 'created'; course: Course };
@@ -61,33 +64,78 @@ export function PopupApp() {
       const settings = await getSettings();
       setSessionLength(settings.defaultSessionLengthMinutes);
 
-      const [tab] = await browser.tabs.query({
+      let [tab] = await browser.tabs.query({
         active: true,
         currentWindow: true,
       });
 
-      if (!tab?.id || !isStandardYouTubeWatchUrl(tab.url)) {
+      if (!tab) {
+        [tab] = await browser.tabs.query({
+          active: true,
+          lastFocusedWindow: true,
+        });
+      }
+
+      if (!tab?.id) {
         await openDashboard();
         return;
       }
 
-      const response = await browser.tabs.sendMessage<
-        { type: 'GET_VIDEO_METADATA' },
-        VideoMetadataResponse
-      >(tab.id, { type: 'GET_VIDEO_METADATA' });
+      const platform = tab.url ? platformFromUrl(tab.url) : null;
+      if (tab.url && !platform) {
+        await openDashboard();
+        return;
+      }
+      if (tab.url && !parseVideoUrl(tab.url)) {
+        setState({
+          status: 'error',
+          message:
+            'Open an individual recorded video page on YouTube, X, or Facebook.',
+        });
+        return;
+      }
+      if (platform && platform !== 'youtube') {
+        if (!(await hasPlatformAccess(platform))) {
+          setState({ status: 'permission', platform });
+          return;
+        }
+        await ensurePlatformBridge(tab.id, tab.url!);
+      }
+
+      let response: VideoMetadataResponse | undefined;
+      try {
+        response = await browser.tabs.sendMessage<
+          { type: 'GET_VIDEO_METADATA' },
+          VideoMetadataResponse
+        >(tab.id, { type: 'GET_VIDEO_METADATA' });
+      } catch {
+        // If content script did not respond and this was not a verified watch URL, open dashboard
+        if (!tab.url || !parseVideoUrl(tab.url)) {
+          await openDashboard();
+          return;
+        }
+
+        setState({
+          status: 'error',
+          message:
+            'Darb could not connect to this tab. Reload the video page and try again.',
+        });
+        return;
+      }
 
       if (!response?.ok) {
         setState({
           status: 'error',
           message:
             response?.error ??
-            'Darb could not connect to this video. Reload the YouTube tab and try again.',
+            'Darb could not connect to this video. Reload the video tab and try again.',
         });
         return;
       }
 
       const duplicates = await courseRepository.findByVideoId(
         response.video.videoId,
+        response.video.platform,
       );
       setState({
         status: 'ready',
@@ -98,7 +146,7 @@ export function PopupApp() {
       setState({
         status: 'error',
         message:
-          'Darb could not connect to this tab. Reload the YouTube page and try again.',
+          'Darb could not connect to this tab. Reload the video page and try again.',
       });
     }
   };
@@ -119,9 +167,7 @@ export function PopupApp() {
     state.status === 'ready' &&
     Number.isFinite(effectiveSessionLength) &&
     effectiveSessionLength > 0
-      ? Math.ceil(
-          state.video.durationSeconds / (effectiveSessionLength * 60),
-        )
+      ? Math.ceil(state.video.durationSeconds / (effectiveSessionLength * 60))
       : 0;
   const repairTarget =
     state.status === 'ready'
@@ -184,16 +230,15 @@ export function PopupApp() {
     setActionError(null);
 
     try {
-      const repairedCourse = rebuildCourseFromVideo(
-        repairTarget,
-        state.video,
-      );
+      const repairedCourse = rebuildCourseFromVideo(repairTarget, state.video);
       const response = await browser.runtime.sendMessage<
         { type: 'REPAIR_COURSE'; course: Course },
         RuntimeMessageResponse
       >({ type: 'REPAIR_COURSE', course: repairedCourse });
       if (!response?.ok) {
-        throw new Error(response?.error ?? 'Darb could not repair this course.');
+        throw new Error(
+          response?.error ?? 'Darb could not repair this course.',
+        );
       }
       setState({
         status: 'created',
@@ -227,7 +272,10 @@ export function PopupApp() {
   };
 
   const openSession = async (courseId: string) => {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     const response = await browser.runtime.sendMessage<
       { type: 'OPEN_SESSION'; courseId: string; sourceTabId?: number },
       RuntimeMessageResponse
@@ -243,6 +291,42 @@ export function PopupApp() {
       setActionError(response?.error ?? 'Unable to open this session.');
     }
   };
+
+  if (state.status === 'permission')
+    return (
+      <div className="w-[380px] p-6">
+        <h1 className="text-lg font-bold">
+          Enable Darb on {PLATFORM_LABELS[state.platform]}
+        </h1>
+        <p className="my-4 text-sm">
+          Experimental support for individual recorded videos. Allow access to
+          read this video's details and track progress locally.
+        </p>
+        <PrimaryButton
+          onClick={() => {
+            void requestPlatformAccess(state.platform)
+              .then((granted) => {
+                if (granted) void detectVideo();
+                else
+                  setState({
+                    status: 'error',
+                    message:
+                      'Access was declined. Enable the platform in Settings when you want to try again.',
+                  });
+              })
+              .catch(() =>
+                setState({
+                  status: 'error',
+                  message:
+                    'Unable to request access. Try enabling the platform in Settings.',
+                }),
+              );
+          }}
+        >
+          Enable {PLATFORM_LABELS[state.platform]}
+        </PrimaryButton>
+      </div>
+    );
 
   return (
     <main className="max-h-[600px] w-[390px] overflow-y-auto bg-white">
@@ -268,8 +352,7 @@ export function PopupApp() {
         <section className="px-5 pb-5 pt-5">
           <div className="overflow-hidden rounded-[20px] border border-[#e8e7ed] bg-[#fafafd]">
             <div className="relative aspect-video overflow-hidden bg-[#e8e7ee]">
-              <img
-                alt=""
+              <VideoThumbnail
                 className="size-full object-cover"
                 src={state.video.thumbnailUrl}
               />
@@ -310,7 +393,7 @@ export function PopupApp() {
                     {repairTarget
                       ? `The old course used ${formatDuration(
                           repairTarget.durationSeconds,
-                        )}, but YouTube reports ${formatDuration(
+                        )}, but the video reports ${formatDuration(
                           state.video.durationSeconds,
                         )}. Repairing resets its incorrect progress.`
                       : 'You can open the existing course or create a separate plan.'}
@@ -479,7 +562,7 @@ function ErrorState({
           <Play fill="currentColor" size={18} />
         </div>
         <h1 className="mt-5 text-[22px] font-semibold leading-tight tracking-[-0.035em]">
-          Open a YouTube course to begin.
+          Open a YouTube, X, or Facebook video to begin.
         </h1>
         <p className="mt-3 text-xs leading-5 text-white/58">{message}</p>
       </div>
@@ -496,8 +579,8 @@ function ErrorState({
       <div className="mt-4 flex items-start gap-3 rounded-2xl bg-success-50 p-4">
         <ShieldCheck className="mt-0.5 shrink-0 text-success-600" size={17} />
         <p className="text-[11px] leading-4 text-[#4e755d]">
-          Video details and progress stay in this browser. Darb never
-          downloads or rehosts the video.
+          Video details and progress stay in this browser. Darb never downloads
+          or rehosts the video.
         </p>
       </div>
     </section>
@@ -570,21 +653,7 @@ function InlineError({ message }: { message: string }) {
   );
 }
 
-function hasDurationMismatch(
-  course: Course,
-  video: YouTubeVideoMetadata,
-): boolean {
-  const difference = Math.abs(
-    course.durationSeconds - video.durationSeconds,
-  );
+function hasDurationMismatch(course: Course, video: VideoMetadata): boolean {
+  const difference = Math.abs(course.durationSeconds - video.durationSeconds);
   return difference > Math.max(5, video.durationSeconds * 0.01);
-}
-
-function isStandardYouTubeWatchUrl(value: string | undefined): boolean {
-  if (!value) return false;
-  try {
-    const url = new URL(value);
-    return (url.hostname === 'youtube.com' || url.hostname.endsWith('.youtube.com')) &&
-      url.pathname === '/watch' && Boolean(url.searchParams.get('v'));
-  } catch { return false; }
 }

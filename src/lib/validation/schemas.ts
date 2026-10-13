@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { parseVideoUrl, sameVideo } from '@/lib/video/platforms';
+const platformSchema = z.enum(['youtube', 'x', 'facebook']).default('youtube');
 
 const isoDateSchema = z.string().datetime();
 
@@ -38,10 +40,17 @@ export const courseSessionSchema = z
 export const courseSchema = z
   .object({
     id: z.string().min(1),
+    platform: platformSchema,
     videoId: z.string().min(1),
     videoUrl: z.url(),
     title: z.string().min(1),
-    thumbnailUrl: z.url(),
+    thumbnailUrl: z
+      .url()
+      .refine(
+        (value) => new URL(value).protocol === 'https:',
+        'Thumbnail must use HTTPS.',
+      )
+      .optional(),
     channelName: z.string().min(1).optional(),
     durationSeconds: z.number().finite().positive(),
     sessionLengthMinutes: z.number().finite().positive(),
@@ -52,10 +61,15 @@ export const courseSchema = z
     updatedAt: isoDateSchema,
   })
   .superRefine((course, context) => {
+    const identity = parseVideoUrl(course.videoUrl);
+    if (!identity || !sameVideo(course, identity))
+      context.addIssue({
+        code: 'custom',
+        message: 'Video URL does not match its platform and identity.',
+        path: ['videoUrl'],
+      });
     let previousEnd = 0;
-    const expectedSessionSeconds = Math.round(
-      course.sessionLengthMinutes * 60,
-    );
+    const expectedSessionSeconds = Math.round(course.sessionLengthMinutes * 60);
 
     course.sessions.forEach((session, index) => {
       if (session.courseId !== course.id) {
@@ -139,36 +153,56 @@ export const settingsSchema = z.object({
   darkMode: z.boolean(),
 });
 
-export const activePlaybackSchema = z.object({
-  activationId: z.string().min(1),
-  tabId: z.number().int().nonnegative(),
-  status: z.enum(['pending', 'active']),
-  courseId: z.string().min(1),
-  sessionId: z.string().min(1),
-  videoId: z.string().min(1),
-  startSeconds: z.number().finite().nonnegative(),
-  endSeconds: z.number().finite().positive(),
-  lastKnownSeconds: z.number().finite().nonnegative(),
-  reportSequence: z.number().int().nonnegative(),
-  startedAt: isoDateSchema,
-}).superRefine((playback, context) => {
-  if (
-    playback.lastKnownSeconds < playback.startSeconds ||
-    playback.lastKnownSeconds > playback.endSeconds
-  ) {
-    context.addIssue({
-      code: 'custom',
-      message: 'Playback checkpoint must be inside the session.',
-      path: ['lastKnownSeconds'],
-    });
-  }
-});
+export const activePlaybackSchema = z
+  .object({
+    platform: platformSchema,
+    activationId: z.string().min(1),
+    tabId: z.number().int().nonnegative(),
+    status: z.enum(['pending', 'active']),
+    courseId: z.string().min(1),
+    sessionId: z.string().min(1),
+    videoId: z.string().min(1),
+    startSeconds: z.number().finite().nonnegative(),
+    endSeconds: z.number().finite().positive(),
+    lastKnownSeconds: z.number().finite().nonnegative(),
+    reportSequence: z.number().int().nonnegative(),
+    startedAt: isoDateSchema,
+  })
+  .superRefine((playback, context) => {
+    if (
+      playback.lastKnownSeconds < playback.startSeconds ||
+      playback.lastKnownSeconds > playback.endSeconds
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Playback checkpoint must be inside the session.',
+        path: ['lastKnownSeconds'],
+      });
+    }
+  });
 
-export const videoMetadataSchema = z.object({
-  videoId: z.string().min(1),
-  videoUrl: z.url(),
-  title: z.string().min(1),
-  thumbnailUrl: z.url(),
-  channelName: z.string().min(1).optional(),
-  durationSeconds: z.number().finite().positive(),
-});
+export const videoMetadataSchema = z
+  .object({
+    platform: platformSchema,
+    videoId: z.string().min(1),
+    videoUrl: z.url(),
+    title: z.string().min(1),
+    thumbnailUrl: z
+      .url()
+      .refine(
+        (value) => new URL(value).protocol === 'https:',
+        'Thumbnail must use HTTPS.',
+      )
+      .optional(),
+    channelName: z.string().min(1).optional(),
+    durationSeconds: z.number().finite().positive(),
+  })
+  .superRefine((video, context) => {
+    const identity = parseVideoUrl(video.videoUrl);
+    if (!identity || !sameVideo(video, identity))
+      context.addIssue({
+        code: 'custom',
+        message: 'Video metadata does not match the supported page.',
+        path: ['videoUrl'],
+      });
+  });

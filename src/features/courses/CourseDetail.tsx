@@ -1,3 +1,5 @@
+import { PLATFORM_LABELS } from '@/lib/video/platforms';
+import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import {
   ArrowLeft,
   Check,
@@ -50,8 +52,7 @@ export function CourseDetail({
       <section className="overflow-hidden rounded-[24px] border border-[#e5e5eb] bg-white shadow-card dark:border-white/10 dark:bg-[#202028]">
         <div className="grid lg:grid-cols-[360px_1fr]">
           <div className="relative min-h-[220px] overflow-hidden bg-[#dddde5]">
-            <img
-              alt=""
+            <VideoThumbnail
               className="absolute inset-0 size-full object-cover"
               src={course.thumbnailUrl}
             />
@@ -63,14 +64,18 @@ export function CourseDetail({
 
           <div className="p-6 sm:p-8">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-600">
-              {course.completed ? 'Course completed' : 'YouTube course'}
+              {course.completed
+                ? 'Course completed'
+                : `${PLATFORM_LABELS[course.platform ?? 'youtube']} course`}
             </p>
             <h1 className="mt-2 max-w-[700px] text-[25px] font-bold leading-tight tracking-[-0.04em] text-ink sm:text-[30px] dark:text-white">
               {course.title}
             </h1>
             <p className="mt-2 text-xs text-muted dark:text-white/45">
-              {course.channelName ?? 'YouTube'} · {course.sessions.length}{' '}
-              sessions · {course.sessionLengthMinutes} min/day
+              {course.channelName ??
+                PLATFORM_LABELS[course.platform ?? 'youtube']}{' '}
+              · {course.sessions.length} sessions ·{' '}
+              {course.sessionLengthMinutes} min/day
             </p>
 
             <div className="mt-6 h-2 overflow-hidden rounded-full bg-[#ececf2] dark:bg-white/10">
@@ -102,7 +107,7 @@ export function CourseDetail({
                 rel="noreferrer"
                 target="_blank"
               >
-                Open on YouTube
+                Open on {PLATFORM_LABELS[course.platform ?? 'youtube']}
                 <ExternalLink size={13} />
               </a>
             </div>
@@ -165,9 +170,7 @@ export function CourseDetail({
             return (
               <div
                 className={`flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center ${
-                  isCurrent
-                    ? 'bg-brand-50/60 dark:bg-brand-500/[0.07]'
-                    : ''
+                  isCurrent ? 'bg-brand-50/60 dark:bg-brand-500/[0.07]' : ''
                 }`}
                 key={session.id}
               >
@@ -205,33 +208,35 @@ export function CourseDetail({
                     {formatTimestamp(session.startSeconds)} →{' '}
                     {formatTimestamp(session.endSeconds)}
                   </p>
-                  {session.resumeSeconds !== undefined && !session.completed && (
-                    <p className="mt-1 text-[10px] font-medium text-brand-600 dark:text-brand-100">
-                      Resume at {formatTimestamp(session.resumeSeconds)}
-                    </p>
-                  )}
+                  {session.resumeSeconds !== undefined &&
+                    !session.completed && (
+                      <p className="mt-1 text-[10px] font-medium text-brand-600 dark:text-brand-100">
+                        Resume at {formatTimestamp(session.resumeSeconds)}
+                      </p>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[#e4e4ea] px-3 text-[10px] font-semibold text-ink transition hover:bg-[#f8f8fb] dark:border-white/10 dark:text-white dark:hover:bg-white/5"
-                    onClick={() =>
-                      onContinue(course.id, session.id)
-                    }
+                    onClick={() => onContinue(course.id, session.id)}
                     type="button"
                   >
                     <Play fill="currentColor" size={11} />
-                    {session.resumeSeconds !== undefined && !session.completed ? 'Resume' : 'Open'}
+                    {session.resumeSeconds !== undefined && !session.completed
+                      ? 'Resume'
+                      : 'Open'}
                   </button>
-                  {!session.completed && session.resumeSeconds !== undefined && (
-                    <button
-                      className="inline-flex min-h-9 items-center rounded-xl px-2 text-[10px] font-semibold text-muted hover:bg-[#f8f8fb] hover:text-ink dark:text-white/45 dark:hover:bg-white/5 dark:hover:text-white"
-                      onClick={() => onRestart(course.id, session.id)}
-                      type="button"
-                    >
-                      Restart
-                    </button>
-                  )}
+                  {!session.completed &&
+                    session.resumeSeconds !== undefined && (
+                      <button
+                        className="inline-flex min-h-9 items-center rounded-xl px-2 text-[10px] font-semibold text-muted hover:bg-[#f8f8fb] hover:text-ink dark:text-white/45 dark:hover:bg-white/5 dark:hover:text-white"
+                        onClick={() => onRestart(course.id, session.id)}
+                        type="button"
+                      >
+                        Restart
+                      </button>
+                    )}
                   <button
                     aria-label={
                       session.completed
@@ -244,16 +249,10 @@ export function CourseDetail({
                         : 'border border-[#e4e4ea] text-[#9798a2] hover:border-brand-100 hover:bg-brand-50 hover:text-brand-600 dark:border-white/10'
                     }`}
                     onClick={() =>
-                      onToggleSession(
-                        course.id,
-                        session.id,
-                        !session.completed,
-                      )
+                      onToggleSession(course.id, session.id, !session.completed)
                     }
                     title={
-                      session.completed
-                        ? 'Mark incomplete'
-                        : 'Mark complete'
+                      session.completed ? 'Mark incomplete' : 'Mark complete'
                     }
                     type="button"
                   >

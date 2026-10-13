@@ -42,6 +42,44 @@ export function getVideoIdFromUrl(url: string): string | null {
   }
 }
 
+export function isStandardYouTubeWatchUrl(
+  value: string | undefined | null,
+): boolean {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, '');
+    return (
+      (hostname === 'youtube.com' || hostname.endsWith('.youtube.com')) &&
+      url.pathname === '/watch' &&
+      Boolean(url.searchParams.get('v'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isYouTubeHost(value: string | undefined | null): boolean {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.replace(/^www\./, '');
+    return (
+      hostname === 'youtube.com' ||
+      hostname.endsWith('.youtube.com') ||
+      hostname === 'youtu.be'
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function parseIsoDuration(value: string | null): number | null {
   if (!value) {
     return null;

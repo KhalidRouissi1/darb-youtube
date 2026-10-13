@@ -1,6 +1,6 @@
 {
   "name": "darb",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Turn long YouTube videos into structured, trackable daily courses.",
   "license": "MIT",
@@ -37,10 +37,12 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
+    "@types/jsdom": "21.1.7",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.2.0",
     "@wxt-dev/module-react": "1.2.2",
+    "jsdom": "26.1.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vite": "7.3.6",

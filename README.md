@@ -68,6 +68,19 @@ npm run build
 
 Load the generated `.output/chrome-mv3` directory as an unpacked extension.
 
+## Experimental X and Facebook support
+
+The 0.2.0 development build adds individual recorded X posts and dedicated
+Facebook video pages. Enable each platform in **Settings → Additional video
+platforms**, or click Darb on a supported page and grant access when prompted.
+Courses and progress remain local. Feeds, live streams, Reels, Stories, and
+ambiguous multi-video posts are unsupported.
+
+Existing YouTube courses migrate automatically with their session checkpoints
+preserved. X/Facebook support requires further installed-extension testing in
+Chrome and Firefox before it can be advertised as stable. Read the
+[implementation and QA notes](docs/multi-platform-qa.md).
+
 ## How it works
 
 ### 1. Turn a video into a course
@@ -119,7 +132,8 @@ Darb works without a server. It stores the following in
 - Resume checkpoints and overall progress
 - Your Darb settings
 
-Nothing is sent to Darb's developer. Deleting a course removes its local plan
+Nothing is sent to Darb's developer. Displaying remote thumbnails contacts the
+original thumbnail host; see the privacy policy for details. Deleting a course removes its local plan
 and progress; **Reset all local data** removes every Darb storage key.
 
 Read the complete [privacy policy](docs/privacy.md).

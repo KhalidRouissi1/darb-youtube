@@ -1,3 +1,4 @@
+import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
@@ -49,11 +50,17 @@ const navItems: {
 ];
 
 export function DashboardApp() {
-  const { courses, error, loading, loadCourses, deleteCourse, setSessionCompleted } =
-    useCourseStore();
+  const {
+    courses,
+    error,
+    loading,
+    loadCourses,
+    deleteCourse,
+    setSessionCompleted,
+  } = useCourseStore();
   const [section, setSection] = useState<DashboardSection>('courses');
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(
-    () => new URLSearchParams(window.location.search).get('course'),
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('course'),
   );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<CourseFilter>('all');
@@ -109,8 +116,7 @@ export function DashboardApp() {
           const progress = calculateCourseProgress(course);
           return {
             sessions: summary.sessions + progress.completedSessions,
-            watchedSeconds:
-              summary.watchedSeconds + progress.watchedSeconds,
+            watchedSeconds: summary.watchedSeconds + progress.watchedSeconds,
           };
         },
         { sessions: 0, watchedSeconds: 0 },
@@ -160,10 +166,16 @@ export function DashboardApp() {
   const restartSession = async (courseId: string, sessionId: string) => {
     setActionError(null);
     const response = await browser.runtime.sendMessage<
-      { type: 'OPEN_SESSION'; courseId: string; sessionId: string; restart: boolean },
+      {
+        type: 'OPEN_SESSION';
+        courseId: string;
+        sessionId: string;
+        restart: boolean;
+      },
       RuntimeMessageResponse
     >({ type: 'OPEN_SESSION', courseId, sessionId, restart: true });
-    if (!response?.ok) setActionError(response?.error ?? 'Unable to restart this session.');
+    if (!response?.ok)
+      setActionError(response?.error ?? 'Unable to restart this session.');
   };
 
   const toggleSession = async (
@@ -316,23 +328,28 @@ export function DashboardApp() {
             aria-label="Mobile navigation"
             className="flex gap-1 overflow-x-auto border-t border-[#eeeef2] px-4 py-2 dark:border-white/8 lg:hidden"
           >
-            {[...navItems, { label: 'Settings', section: 'settings' as const, icon: Settings }].map(
-              ({ icon: Icon, label, section: itemSection }) => (
-                <button
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold ${
-                    section === itemSection
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100'
-                      : 'text-muted dark:text-white/45'
-                  }`}
-                  key={itemSection}
-                  onClick={() => navigate(itemSection)}
-                  type="button"
-                >
-                  <Icon size={13} />
-                  {label}
-                </button>
-              ),
-            )}
+            {[
+              ...navItems,
+              {
+                label: 'Settings',
+                section: 'settings' as const,
+                icon: Settings,
+              },
+            ].map(({ icon: Icon, label, section: itemSection }) => (
+              <button
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold ${
+                  section === itemSection
+                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-100'
+                    : 'text-muted dark:text-white/45'
+                }`}
+                key={itemSection}
+                onClick={() => navigate(itemSection)}
+                type="button"
+              >
+                <Icon size={13} />
+                {label}
+              </button>
+            ))}
           </nav>
         </header>
 
@@ -340,7 +357,7 @@ export function DashboardApp() {
           {loading ? (
             <LoadingDashboard />
           ) : selectedCourse ? (
-              <CourseDetail
+            <CourseDetail
               course={selectedCourse}
               error={actionError}
               onBack={closeCourse}
@@ -417,7 +434,9 @@ function CoursesView({
 }) {
   const resumeCourse = [...allCourses]
     .filter((course) => !course.completed)
-    .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0];
+    .sort((first, second) =>
+      second.updatedAt.localeCompare(first.updatedAt),
+    )[0];
 
   return (
     <>
@@ -555,7 +574,8 @@ function ContinuePanel({
             </h2>
             <p className="mt-2 text-sm text-white/55">
               Resume at {formatTimestamp(resumeAt)} ·{' '}
-              {formatDuration(session.endSeconds - resumeAt)} left in this session
+              {formatDuration(session.endSeconds - resumeAt)} left in this
+              session
             </p>
 
             <div
@@ -619,8 +639,7 @@ function TodayView({
               className="flex flex-col gap-4 rounded-2xl border border-[#e5e5eb] bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#202028] sm:flex-row sm:items-center"
               key={course.id}
             >
-              <img
-                alt=""
+              <VideoThumbnail
                 className="h-20 w-full rounded-xl object-cover sm:w-32"
                 src={course.thumbnailUrl}
               />
@@ -650,7 +669,7 @@ function TodayView({
 
         {activeCourses.length === 0 && (
           <EmptyMessage
-            detail="Create a course from a YouTube video to see your daily session here."
+            detail="Create a course from a supported video to see your daily session here."
             title="Nothing scheduled yet"
           />
         )}
@@ -699,9 +718,7 @@ function ActivityView({ courses }: { courses: Course[] }) {
               </p>
               <p className="mt-1 text-[10px] text-muted dark:text-white/45">
                 {session.title} ·{' '}
-                {formatDuration(
-                  session.endSeconds - session.startSeconds,
-                )}
+                {formatDuration(session.endSeconds - session.startSeconds)}
               </p>
             </div>
             <time className="text-[10px] text-muted dark:text-white/40">
@@ -753,7 +770,7 @@ function EmptyCourses({
               Turn “watch later” into learning today.
             </h2>
             <p className="mt-4 max-w-[410px] text-sm leading-6 text-white/55">
-              Open an educational YouTube video, then click the Darb
+              Open a recorded YouTube, X, or Facebook video, then click the Darb
               extension to choose your daily pace.
             </p>
             <button
@@ -777,7 +794,7 @@ function EmptyCourses({
           </p>
           <ol className="mt-6 space-y-6">
             {[
-              ['01', 'Open a long YouTube course'],
+              ['01', 'Open a recorded video'],
               ['02', 'Click Darb and choose your pace'],
               ['03', 'Create the course and start learning'],
             ].map(([number, text]) => (
@@ -797,13 +814,7 @@ function EmptyCourses({
   );
 }
 
-function EmptyMessage({
-  detail,
-  title,
-}: {
-  detail: string;
-  title: string;
-}) {
+function EmptyMessage({ detail, title }: { detail: string; title: string }) {
   return (
     <div className="grid min-h-[220px] place-items-center px-6 py-10 text-center">
       <div>
