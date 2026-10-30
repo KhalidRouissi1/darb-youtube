@@ -1,3 +1,4 @@
+import { withTimeout } from '@/lib/utils/with-timeout';
 import { browser } from 'wxt/browser';
 import { adapterForPage } from '@/lib/platforms/adapter';
 import { getSettings } from '@/lib/storage/repository';
@@ -14,11 +15,7 @@ import type {
 
 let restoreGeneration = 0;
 let controller: AbortController | null = null;
-let player: HTMLVideoElement | null = null;
 let saveCheckpoint: (() => Promise<void>) | null = null;
-export function trackedPlayer(): HTMLVideoElement | null {
-  return player;
-}
 export async function stopSessionTracking(): Promise<void> {
   restoreGeneration += 1;
   let pending: Promise<void> | undefined;
@@ -29,7 +26,6 @@ export async function stopSessionTracking(): Promise<void> {
   }
   controller?.abort();
   controller = null;
-  player = null;
   saveCheckpoint = null;
   removeCompletionOverlay();
   await pending?.catch(() => undefined);
@@ -66,7 +62,6 @@ export async function restoreSessionTracking(
     throw new Error('Open the saved video to resume this course.');
   const video = await adapter.waitForPlayer(signal);
   if (signal.aborted) return;
-  player = video;
   const deadline = Date.now() + 30000;
   while (
     !signal.aborted &&
@@ -84,6 +79,7 @@ export async function restoreSessionTracking(
   const settings = await getSettings();
   if (signal.aborted) return;
   let terminal = false;
+  let finishing = false;
   let sequence = playback.reportSequence;
   let savedAt = 0;
   let suspended = false;
@@ -125,6 +121,7 @@ export async function restoreSessionTracking(
   const finish = async () => {
     if (
       terminal ||
+      finishing ||
       signal.aborted ||
       suspended ||
       adapter.isAd() ||
@@ -132,40 +129,73 @@ export async function restoreSessionTracking(
       Math.abs(video.duration - contentDuration) > 1
     )
       return;
-    terminal = true;
-    detach();
-    if (settings.autoPauseAtSessionEnd) video.pause();
-    if (!settings.autoMarkSessionsComplete) {
-      await browser.runtime.sendMessage({
-        type: 'REPORT_SESSION_POSITION',
+    finishing = true;
+    try {
+      if (settings.autoPauseAtSessionEnd) video.pause();
+      if (!settings.autoMarkSessionsComplete) {
+        await browser.runtime.sendMessage({
+          type: 'REPORT_SESSION_POSITION',
+          courseId: playback.courseId,
+          sessionId: playback.sessionId,
+          activationId: playback.activationId,
+          seconds: Math.max(playback.startSeconds, playback.endSeconds - 1),
+          sequence: ++sequence,
+        });
+        await browser.runtime.sendMessage({
+          type: 'RELEASE_SESSION',
+          activationId: playback.activationId,
+        });
+        terminal = true;
+        detach();
+        return;
+      }
+      const completion = await browser.runtime.sendMessage<
+        {
+          type: 'SESSION_REACHED_END';
+          courseId: string;
+          sessionId: string;
+          activationId: string;
+        },
+        SessionCompletionResponse
+      >({
+        type: 'SESSION_REACHED_END',
         courseId: playback.courseId,
         sessionId: playback.sessionId,
         activationId: playback.activationId,
-        seconds: Math.max(playback.startSeconds, playback.endSeconds - 1),
-        sequence: ++sequence,
       });
-      await browser.runtime.sendMessage({
-        type: 'RELEASE_SESSION',
-        activationId: playback.activationId,
-      });
-      return;
+      if (!completion?.ok)
+        throw new Error(
+          completion?.error ?? 'Unable to save session completion.',
+        );
+      terminal = true;
+      detach();
+      let nextVideoError: string | undefined;
+      if (!signal.aborted && !completion.nextSession && completion.nextVideo) {
+        try {
+          const next = await withTimeout(
+            browser.runtime.sendMessage({
+              type: 'DARB_CONTINUE_PLAYLIST',
+              playlistId: completion.nextVideo.playlistId,
+              videoId: completion.nextVideo.videoId,
+            }),
+            15000,
+            'Opening the next video took too long. Try again below.',
+          );
+          if (!next?.ok)
+            throw new Error(next?.error ?? 'Could not open the next video.');
+          return;
+        } catch (error) {
+          nextVideoError =
+            error instanceof Error
+              ? error.message
+              : 'Could not open the next video.';
+        }
+      }
+      if (!signal.aborted && settings.showCompletionOverlay)
+        showCompletionOverlay(completion, nextVideoError);
+    } finally {
+      finishing = false;
     }
-    const completion = await browser.runtime.sendMessage<
-      {
-        type: 'SESSION_REACHED_END';
-        courseId: string;
-        sessionId: string;
-        activationId: string;
-      },
-      SessionCompletionResponse
-    >({
-      type: 'SESSION_REACHED_END',
-      courseId: playback.courseId,
-      sessionId: playback.sessionId,
-      activationId: playback.activationId,
-    });
-    if (!signal.aborted && completion?.ok && settings.showCompletionOverlay)
-      showCompletionOverlay(completion);
   };
   const tick = () => {
     try {
@@ -199,7 +229,12 @@ export async function restoreSessionTracking(
         return;
       }
       void report().catch(() => undefined);
-      if (hasReachedSessionEnd(video.currentTime, playback.endSeconds))
+      if (
+        hasReachedSessionEnd(video.currentTime, playback.endSeconds) ||
+        (video.ended &&
+          video.currentTime >=
+            Math.min(video.duration, playback.endSeconds) - 0.5)
+      )
         void finish().catch(() => undefined);
     } catch {
       void stopSessionTracking();

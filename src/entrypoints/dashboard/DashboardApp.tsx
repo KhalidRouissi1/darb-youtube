@@ -1,3 +1,11 @@
+import {
+  WorkspaceProvider,
+  useWorkspace,
+} from '@/features/workspace/WorkspaceContext';
+import { WorkspacePanel } from '@/features/workspace/WorkspacePanel';
+import { WorkspaceFolders } from '@/features/workspace/WorkspaceFolders';
+import { CourseNotes } from '@/features/workspace/Notes';
+import '@/features/workspace/workspace.css';
 import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -24,6 +32,10 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CourseDetail } from '@/features/courses/CourseDetail';
 import { useCourseStore } from '@/features/courses/course-store';
+import {
+  PlaylistPanel,
+  AssistantPanel,
+} from '@/features/learning/LearningPanels';
 import { SettingsPanel } from '@/features/settings/SettingsPanel';
 import type { RuntimeMessageResponse } from '@/lib/messaging/messages';
 import { getSettings } from '@/lib/storage/repository';
@@ -36,7 +48,15 @@ import {
 import { formatDuration, formatTimestamp } from '@/lib/utils/time';
 import type { Course } from '@/types/course';
 
-type DashboardSection = 'courses' | 'today' | 'activity' | 'settings';
+type DashboardSection =
+  | 'library'
+  | 'graph'
+  | 'courses'
+  | 'today'
+  | 'activity'
+  | 'settings'
+  | 'playlists'
+  | 'assistant';
 type CourseFilter = 'all' | 'in-progress' | 'completed';
 
 const navItems: {
@@ -44,12 +64,27 @@ const navItems: {
   section: DashboardSection;
   icon: typeof LayoutGrid;
 }[] = [
-  { label: 'Courses', section: 'courses', icon: LayoutGrid },
   { label: 'Today', section: 'today', icon: CalendarDays },
+  { label: 'Library', section: 'library', icon: LayoutGrid },
+  { label: 'Graph', section: 'graph', icon: Sparkles },
+  { label: 'Playlists', section: 'playlists', icon: BookOpen },
+  { label: 'Assistant', section: 'assistant', icon: Sparkles },
   { label: 'Activity', section: 'activity', icon: History },
 ];
 
 export function DashboardApp() {
+  return (
+    <WorkspaceProvider>
+      <DashboardContent />
+    </WorkspaceProvider>
+  );
+}
+function DashboardContent() {
+  const { workspace } = useWorkspace();
+  const [workspaceFocus, setWorkspaceFocus] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get('item'),
+  );
+  const [playlistFocus, setPlaylistFocus] = useState<string | null>(null);
   const {
     courses,
     error,
@@ -58,7 +93,18 @@ export function DashboardApp() {
     deleteCourse,
     setSessionCompleted,
   } = useCourseStore();
-  const [section, setSection] = useState<DashboardSection>('courses');
+  const [section, setSection] = useState<DashboardSection>(() => {
+    const value = new URLSearchParams(window.location.search).get('section');
+    return value === 'playlists' ||
+      value === 'assistant' ||
+      value === 'library' ||
+      value === 'graph' ||
+      value === 'today' ||
+      value === 'activity' ||
+      value === 'settings'
+      ? value
+      : 'today';
+  });
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('course'),
   );
@@ -143,6 +189,9 @@ export function DashboardApp() {
   const navigate = (nextSection: DashboardSection) => {
     setSection(nextSection);
     closeCourse();
+    const url = new URL(window.location.href);
+    url.searchParams.set('section', nextSection);
+    window.history.replaceState(null, '', url);
     setActionError(null);
   };
 
@@ -245,6 +294,8 @@ export function DashboardApp() {
           })}
         </nav>
 
+        <WorkspaceFolders onNavigate={() => navigate('library')} />
+
         <div className="my-6 border-t border-[#eeeef2] dark:border-white/8" />
 
         <button
@@ -279,28 +330,35 @@ export function DashboardApp() {
               <DarbLogo compact />
             </div>
 
-            <label className="relative hidden max-w-[360px] flex-1 sm:block">
-              <span className="sr-only">Search courses</span>
-              <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#999aa5]"
-                size={16}
-              />
-              <input
-                aria-label="Search courses"
-                className="h-10 w-full rounded-xl border border-[#e8e8ed] bg-[#fafafd] pl-10 pr-4 text-sm text-ink placeholder:text-[#aaabb4] focus:border-brand-500 focus:bg-white focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  if (section !== 'courses') {
-                    setSection('courses');
-                  }
-                }}
-                placeholder="Search your courses"
-                type="search"
-                value={query}
-              />
-            </label>
+            {section !== 'library' && section !== 'graph' && (
+              <label className="relative hidden max-w-[360px] flex-1 sm:block">
+                <span className="sr-only">Search courses</span>
+                <Search
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#999aa5]"
+                  size={16}
+                />
+                <input
+                  aria-label="Search courses"
+                  className="h-10 w-full rounded-xl border border-[#e8e8ed] bg-[#fafafd] pl-10 pr-4 text-sm text-ink placeholder:text-[#aaabb4] focus:border-brand-500 focus:bg-white focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    if (section !== 'courses') {
+                      setSection('courses');
+                    }
+                  }}
+                  placeholder="Search your courses"
+                  type="search"
+                  value={query}
+                />
+              </label>
+            )}
 
             <div className="ml-auto flex items-center gap-2">
+              {workspace && (section === 'library' || section === 'graph') && (
+                <span className="hidden text-xs text-muted sm:inline">
+                  Darb / My learning
+                </span>
+              )}
               <button
                 aria-label="Notifications"
                 className="grid size-10 place-items-center rounded-xl border border-[#e8e8ed] bg-white text-[#6e707d] transition hover:bg-[#f8f8fb] hover:text-ink dark:border-white/10 dark:bg-white/5 dark:text-white/55"
@@ -354,23 +412,53 @@ export function DashboardApp() {
         </header>
 
         <main className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8 lg:py-10">
+          {error && (
+            <p role="alert" className="mb-4 text-sm text-red-600">
+              {error}
+            </p>
+          )}
           {loading ? (
             <LoadingDashboard />
           ) : selectedCourse ? (
-            <CourseDetail
-              course={selectedCourse}
-              error={actionError}
-              onBack={closeCourse}
-              onContinue={(courseId, sessionId) =>
-                void openSession(courseId, sessionId)
-              }
-              onRestart={(courseId, sessionId) =>
-                void restartSession(courseId, sessionId)
-              }
-              onToggleSession={(courseId, sessionId, completed) =>
-                void toggleSession(courseId, sessionId, completed)
-              }
+            <>
+              <CourseDetail
+                course={selectedCourse}
+                error={actionError}
+                onBack={() => navigate('library')}
+                onContinue={(courseId, sessionId) =>
+                  void openSession(courseId, sessionId)
+                }
+                onRestart={(courseId, sessionId) =>
+                  void restartSession(courseId, sessionId)
+                }
+                onToggleSession={(courseId, sessionId, completed) =>
+                  void toggleSession(courseId, sessionId, completed)
+                }
+              />
+              <CourseNotes
+                key={selectedCourse.id}
+                course={selectedCourse}
+                onOpen={(id) => {
+                  setWorkspaceFocus(id);
+                  navigate('library');
+                }}
+              />
+            </>
+          ) : section === 'library' || section === 'graph' ? (
+            <WorkspacePanel
+              courses={courses}
+              mode={section}
+              focusId={workspaceFocus}
+              onOpenCourse={openCourse}
+              onOpenPlaylist={(id) => {
+                setPlaylistFocus(id);
+                navigate('playlists');
+              }}
             />
+          ) : section === 'playlists' ? (
+            <PlaylistPanel courses={courses} focusId={playlistFocus} />
+          ) : section === 'assistant' ? (
+            <AssistantPanel courses={courses} />
           ) : section === 'settings' ? (
             <SettingsPanel onReset={loadCourses} />
           ) : section === 'today' ? (

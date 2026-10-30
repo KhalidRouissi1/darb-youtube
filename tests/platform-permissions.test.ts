@@ -100,3 +100,62 @@ describe('optional platform access', () => {
     expect(remove).toHaveBeenCalledWith({ origins: OPTIONAL_ORIGINS.facebook });
   });
 });
+
+describe('YouTube bridge recovery', () => {
+  it('injects the packaged YouTube bridge when an existing tab has no receiver', async () => {
+    vi.spyOn(browser.tabs, 'sendMessage').mockRejectedValue(
+      new Error('Receiving end does not exist'),
+    );
+    const permissions = vi.spyOn(browser.permissions, 'contains');
+    const register = vi.spyOn(browser.scripting, 'registerContentScripts');
+    const inject = vi
+      .spyOn(browser.scripting, 'executeScript')
+      .mockImplementation(async () => []);
+    await ensurePlatformBridge(
+      7,
+      'https://www.youtube.com/watch?v=abcdefghijk',
+    );
+    expect(inject).toHaveBeenCalledWith({
+      target: { tabId: 7 },
+      files: ['/content-scripts/content.js'],
+    });
+    expect(permissions).not.toHaveBeenCalled();
+    expect(register).not.toHaveBeenCalled();
+  });
+  it('leaves a responding YouTube bridge in place', async () => {
+    vi.spyOn(browser.tabs, 'sendMessage').mockImplementation(async () => ({
+      ok: true,
+    }));
+    const inject = vi.spyOn(browser.scripting, 'executeScript');
+    await ensurePlatformBridge(
+      7,
+      'https://www.youtube.com/watch?v=abcdefghijk',
+    );
+    expect(inject).not.toHaveBeenCalled();
+  });
+  it('recovers a bridge that returns no response', async () => {
+    vi.spyOn(browser.tabs, 'sendMessage').mockResolvedValue(undefined);
+    const inject = vi
+      .spyOn(browser.scripting, 'executeScript')
+      .mockImplementation(async () => []);
+    await ensurePlatformBridge(
+      7,
+      'https://www.youtube.com/watch?v=abcdefghijk',
+    );
+    expect(inject).toHaveBeenCalledTimes(1);
+  });
+});
+
+it('explains browser site access when injection is restricted instead of leaking a raw host error', async () => {
+  vi.spyOn(browser.tabs, 'sendMessage').mockRejectedValue(
+    new Error('No receiver'),
+  );
+  vi.spyOn(browser.scripting, 'executeScript').mockRejectedValue(
+    new Error(
+      'Cannot access contents of the page. Extension manifest must request permission to access the respective host.',
+    ),
+  );
+  await expect(
+    ensurePlatformBridge(7, 'https://www.youtube.com/watch?v=abcdefghijk'),
+  ).rejects.toThrow('Allow access to this site');
+});

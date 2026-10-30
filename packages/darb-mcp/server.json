@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.KhalidRouissi1/darb",
+  "title": "Darb",
+  "description": "Read shared Darb courses and plan learning from a local, read-only snapshot.",
+  "version": "0.5.5",
+  "repository": {
+    "url": "https://github.com/KhalidRouissi1/darb-youtube",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@khalidrouissi/darb-mcp",
+      "version": "0.5.5",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "--snapshot"
+        },
+        {
+          "type": "positional",
+          "valueHint": "snapshot_file",
+          "description": "Absolute path to a JSON export saved from Darb \u2192 Assistant. Read-only; notes are excluded.",
+          "format": "filepath",
+          "isRequired": true
+        }
+      ]
+    }
+  ]
+}

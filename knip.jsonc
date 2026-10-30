@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "entry": [
+    "src/entrypoints/**/*.{ts,tsx,html}",
+    "companion/main.ts",
+    "scripts/*.mjs",
+    "packages/darb-mcp/check-package.mjs",
+    "tests/**/*.{test,spec}.{ts,tsx}",
+    // Vite's preview HTML and wxt/browser alias load these without ordinary imports.
+    "tests/preview/main.tsx",
+    "tests/preview/browser.ts",
+    "tests/preview/vite.config.ts",
+    "web-ext.config.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx,css}", "companion/**/*.ts", "scripts/**/*.mjs", "tests/**/*.{ts,tsx}"],
+  "paths": { "@/*": ["./src/*"] },
+  "wxt": { "entry": ["src/entrypoints/**/*.{ts,tsx,html}"] }
+}

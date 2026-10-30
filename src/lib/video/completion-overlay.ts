@@ -1,14 +1,12 @@
 import { browser } from 'wxt/browser';
 import { formatTimestamp } from '@/lib/utils/time';
-import type {
-  RuntimeMessageResponse,
-  SessionCompletionResponse,
-} from '@/lib/messaging/messages';
+import type { SessionCompletionResponse } from '@/lib/messaging/messages';
 
 const OVERLAY_ID = 'coursora-completion-overlay';
 
 export function showCompletionOverlay(
   response: Extract<SessionCompletionResponse, { ok: true }>,
+  initialError?: string,
 ): void {
   document.getElementById(OVERLAY_ID)?.remove();
 
@@ -84,18 +82,24 @@ export function showCompletionOverlay(
   row.append(icon, closeButton);
 
   const heading = document.createElement('h2');
-  heading.textContent = response.course.completed
-    ? 'Course completed!'
-    : 'Session completed';
+  heading.textContent = response.playlist?.completed
+    ? 'Playlist completed!'
+    : response.course.completed
+      ? 'Course completed!'
+      : 'Session completed';
 
   const message = document.createElement('p');
-  message.textContent = response.course.completed
-    ? 'You finished every session. Excellent work.'
-    : response.nextSession
-      ? `Next session starts at ${formatTimestamp(
-          response.nextSession.startSeconds,
-        )}.`
-      : 'You reached the end. Earlier sessions are still unfinished.';
+  message.textContent = response.playlist?.completed
+    ? `You finished every video in ${response.playlist.title}.`
+    : response.course.completed
+      ? response.nextVideo
+        ? `Next in your playlist: ${response.nextVideo.title}`
+        : 'You finished every session. Excellent work.'
+      : response.nextSession
+        ? `Next session starts at ${formatTimestamp(
+            response.nextSession.startSeconds,
+          )}.`
+        : 'You reached the end. Earlier sessions are still unfinished.';
 
   const progress = document.createElement('div');
   progress.className = 'progress';
@@ -112,17 +116,23 @@ export function showCompletionOverlay(
 
   card.append(row, heading, message, progress, meta);
 
-  if (response.nextSession) {
+  if (response.nextSession || response.nextVideo) {
     const nextButton = document.createElement('button');
     nextButton.className = 'next';
     nextButton.type = 'button';
-    nextButton.textContent = 'Continue to next session';
+    nextButton.textContent = response.nextSession
+      ? 'Continue to next session'
+      : `Next video: ${response.nextVideo!.title}`;
     card.append(nextButton);
   }
 
   const errorMessage = document.createElement('p');
   errorMessage.className = 'error';
   errorMessage.setAttribute('role', 'alert');
+  if (initialError) {
+    errorMessage.textContent = initialError;
+    errorMessage.classList.add('visible');
+  }
   card.append(errorMessage);
 
   shadow.append(style, card);
@@ -136,27 +146,28 @@ export function showCompletionOverlay(
     const button = shadow.querySelector<HTMLButtonElement>('.next');
     const errorElement = shadow.querySelector<HTMLElement>('.error');
 
-    if (!nextSession || !button) {
+    if ((!nextSession && !response.nextVideo) || !button) {
       return;
     }
 
     button.disabled = true;
-    button.textContent = 'Opening next session…';
+    button.textContent = response.nextSession
+      ? 'Opening next session…'
+      : 'Opening next video…';
     errorElement?.classList.remove('visible');
 
     try {
-      const openResponse = await browser.runtime.sendMessage<
-        {
-          type: 'CONTINUE_SESSION_IN_TAB';
-          courseId: string;
-          sessionId: string;
-        },
-        RuntimeMessageResponse
-      >({
-        type: 'CONTINUE_SESSION_IN_TAB',
-        courseId: response.course.id,
-        sessionId: nextSession.id,
-      });
+      const openResponse = nextSession
+        ? await browser.runtime.sendMessage({
+            type: 'CONTINUE_SESSION_IN_TAB',
+            courseId: response.course.id,
+            sessionId: nextSession.id,
+          })
+        : await browser.runtime.sendMessage({
+            type: 'DARB_CONTINUE_PLAYLIST',
+            playlistId: response.nextVideo!.playlistId,
+            videoId: response.nextVideo!.videoId,
+          });
 
       if (!openResponse?.ok) {
         throw new Error(
@@ -167,7 +178,7 @@ export function showCompletionOverlay(
       host.remove();
     } catch (error) {
       button.disabled = false;
-      button.textContent = 'Try opening next session again';
+      button.textContent = 'Try again';
 
       if (errorElement) {
         errorElement.textContent =

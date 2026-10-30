@@ -1,6 +1,6 @@
 # Darb Privacy Policy
 
-Last updated: October 12, 2026
+Last updated: October 29, 2026
 
 Darb is designed to work without an account or server.
 
@@ -25,6 +25,11 @@ Darb uses this data only to provide its user-facing functionality.
 - Current course progress
 - Active session timestamp used for restart recovery
 - User settings
+- Local playlists and selection drafts
+- Folders, tags, notes with optional video timestamps and explicit links between learning material
+- Your floating note-mode preference (off by default)
+- Library filters, view preferences and graph positions
+- Optional assistant grants, pairing key, expiring proposals and a short local action history
 
 This data is stored in `chrome.storage.local` inside the user's browser profile.
 
@@ -35,19 +40,43 @@ This data is stored in `chrome.storage.local` inside the user's browser profile.
 - Account credentials
 - Analytics or telemetry
 - Advertising identifiers
-- Notes, messages, or personal profile information
+- Personal communications or account profile information
 
 Darb does not download, copy, or rehost videos. It opens the original
 platform page and controls its HTML5 player only for the active learning session.
 
 ## Sharing and transfer
 
-Darb does not upload courses, settings, or progress to the developer or to
-external servers. It
-does not sell user data, transfer user data to third parties, use data for
-purposes unrelated to its single purpose, use data for advertising, or use
-data to determine creditworthiness or for lending purposes. No developer or
-third party can read the locally stored course data through Darb.
+Darb does not upload courses, settings, or progress to the developer and has
+no hosted backend, telemetry, advertising, data sales, or lending use.
+
+Sharing with an assistant is optional and disabled by default. An explicit
+snapshot export includes only the courses and playlists you select. Workspace
+notes, folders, tags and graph positions are excluded from snapshots and MCP
+responses, including notes linked to a shared course. Enabling
+the optional local MCP companion allows the connected client to read the
+courses/playlists you explicitly share. Selection-draft access and playback
+requests have separate controls. Each proposed playlist save and playback
+request requires your approval in Darb. You may disconnect and revoke access
+at any time. Revocation does not erase data already received by the client.
+
+The companion communicates locally using native messaging and a private Unix
+socket. Data returned to an assistant may subsequently be transmitted to its
+model provider under that provider's privacy policy. Local communication does
+not imply that the assistant's processing stays on your device. Keep pairing
+files secret and export files private unless you deliberately share them.
+Firefox requests optional data consent for live access to selected URLs, video
+metadata, and learning activity. Declining consent leaves ordinary local course
+features available. No assistant access is required to use Darb.
+
+## Floating video notes
+
+When enabled in the popup, note mode displays a bubble on supported video pages.
+It reads the current player's timestamp when you save a note. The page bridge
+can read/save notes only for the current top-level video, after platform access
+and the note-mode preference are checked. It cannot read your whole workspace.
+Disable note mode in the popup to remove the bubble. Notes remain stored locally;
+notes and timestamps are excluded from current assistant exports/MCP responses.
 
 ## Platform access and external resources
 
@@ -66,5 +95,8 @@ Darb sends no course progress or account credentials with thumbnail requests.
 
 ## Retention and deletion
 
-Deleting a course removes its local plan and progress. **Reset all local data**
+Deleting a course removes its local plan and progress. Deleting a playlist
+keeps individual courses and their checkpoints. Deleting a folder moves its
+contents to Inbox; it does not delete the material or reset progress. Deleting a
+note removes that note and its links. **Reset all local data**
 in Settings removes every Darb storage key.

@@ -11,6 +11,7 @@ export interface VideoMetadata {
 }
 export interface ActivePlayback {
   platform?: VideoPlatform;
+  playlistId?: string | undefined;
   activationId: string;
   tabId: number;
   status: 'pending' | 'active';

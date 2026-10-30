@@ -3,13 +3,25 @@ import { defineConfig } from 'wxt';
 
 export default defineConfig({
   srcDir: 'src',
-  zip: { includeSources: ['tests/**'] },
+  zip: {
+    excludeSources: ['docs/marketing/**', 'docs/*-plan.md', 'docs/*-implementation.md', 'marketing-private/**', 'darb-connection*.json', 'darb-snapshot*.json'],
+    includeSources: [
+      'tests/**',
+      'companion/**',
+      'scripts/**',
+      'packages/darb-mcp/package.json',
+      'packages/darb-mcp/README.md',
+      'packages/darb-mcp/LICENSE',
+      'packages/darb-mcp/check-package.mjs',
+      'packages/darb-mcp/server.json',
+    ],
+  },
   modules: ['@wxt-dev/module-react'],
   manifest: ({ browser }) => ({
     name: 'Darb',
     description:
       'Turn long YouTube videos into structured, trackable daily courses.',
-    version: '0.2.0',
+    version: '0.5.4',
     homepage_url: 'https://github.com/KhalidRouissi1/darb-youtube',
     icons: {
       16: 'icon-16.png',
@@ -18,7 +30,8 @@ export default defineConfig({
       128: 'icon-128.png',
     },
     permissions: ['activeTab', 'storage', 'scripting'],
-    optional_permissions: ['notifications'],
+    host_permissions: ['*://*.youtube.com/*'],
+    optional_permissions: ['notifications', 'nativeMessaging'],
     optional_host_permissions: [
       'https://x.com/*',
       'https://www.x.com/*',
@@ -43,6 +56,11 @@ export default defineConfig({
               strict_min_version: '140.0',
               data_collection_permissions: {
                 required: ['none'],
+                optional: [
+                  'browsingActivity',
+                  'websiteActivity',
+                  'websiteContent',
+                ],
               },
             },
             gecko_android: {

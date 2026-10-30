@@ -2,7 +2,7 @@ import { YOUTUBE_SELECTORS } from '@/lib/youtube/selectors';
 import { videoMetadataSchema } from '@/lib/validation/schemas';
 import type { YouTubeVideoMetadata } from '@/types/youtube';
 
-export class YouTubeMetadataError extends Error {
+class YouTubeMetadataError extends Error {
   constructor(
     message: string,
     public readonly code:
@@ -154,6 +154,7 @@ export async function extractYouTubeMetadata(): Promise<YouTubeVideoMetadata> {
     );
   }
 
+  await waitForCurrentWatchPage(videoId);
   const playerDetails = extractInitialPlayerDetails(
     Array.from(document.scripts, (script) => script.textContent ?? ''),
     videoId,
@@ -165,7 +166,14 @@ export async function extractYouTubeMetadata(): Promise<YouTubeVideoMetadata> {
   );
   const title =
     playerDetails?.title ??
-    readMetadataValue(YOUTUBE_SELECTORS.title) ??
+    readMetadataValue([
+      'ytd-watch-metadata h1 yt-formatted-string',
+      '#title h1 yt-formatted-string',
+      'h1.ytd-watch-metadata',
+    ]) ??
+    (metadataMatchesVideo(videoId)
+      ? readMetadataValue(YOUTUBE_SELECTORS.title)
+      : null) ??
     document.title.replace(/\s*-\s*YouTube\s*$/i, '').trim();
 
   if (!title) {
@@ -179,7 +187,9 @@ export async function extractYouTubeMetadata(): Promise<YouTubeVideoMetadata> {
     playerDetails?.author ?? readMetadataValue(YOUTUBE_SELECTORS.channel);
   const detectedThumbnail =
     playerDetails?.thumbnailUrl ??
-    readMetadataValue(YOUTUBE_SELECTORS.thumbnail);
+    (metadataMatchesVideo(videoId)
+      ? readMetadataValue(YOUTUBE_SELECTORS.thumbnail)
+      : null);
   const thumbnailUrl =
     detectedThumbnail &&
     (() => {
@@ -190,6 +200,11 @@ export async function extractYouTubeMetadata(): Promise<YouTubeVideoMetadata> {
       }
     })();
 
+  if (getVideoIdFromUrl(window.location.href) !== videoId)
+    throw new YouTubeMetadataError(
+      'The video changed while Darb was reading it. Try again.',
+      'VIDEO_UNAVAILABLE',
+    );
   return videoMetadataSchema.parse({
     videoId,
     videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`,
@@ -199,6 +214,34 @@ export async function extractYouTubeMetadata(): Promise<YouTubeVideoMetadata> {
     ...(channelName ? { channelName } : {}),
     durationSeconds,
   });
+}
+
+function metadataMatchesVideo(videoId: string): boolean {
+  const url =
+    document.querySelector<HTMLMetaElement>('meta[property="og:url"]')
+      ?.content ??
+    document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href;
+  return !!url && getVideoIdFromUrl(url) === videoId;
+}
+async function waitForCurrentWatchPage(videoId: string) {
+  const deadline = Date.now() + 5000;
+  while (true) {
+    if (getVideoIdFromUrl(window.location.href) !== videoId)
+      throw new YouTubeMetadataError(
+        'The video changed. Try again.',
+        'VIDEO_UNAVAILABLE',
+      );
+    const mountedId = document
+      .querySelector('ytd-watch-flexy')
+      ?.getAttribute('video-id');
+    if (!mountedId || mountedId === videoId) return;
+    if (Date.now() >= deadline)
+      throw new YouTubeMetadataError(
+        'YouTube is still changing videos. Wait a moment and try again.',
+        'VIDEO_UNAVAILABLE',
+      );
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }
 
 export async function waitForVideoElement(
@@ -449,9 +492,7 @@ function readPlayerDetails(value: unknown): YouTubePlayerDetails | null {
     videoId,
     title,
     durationSeconds,
-    ...(typeof details.author === 'string'
-      ? { author: details.author }
-      : {}),
+    ...(typeof details.author === 'string' ? { author: details.author } : {}),
     ...(typeof thumbnailUrl === 'string' ? { thumbnailUrl } : {}),
   };
 }

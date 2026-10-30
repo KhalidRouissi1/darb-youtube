@@ -1,3 +1,4 @@
+import { withTimeout } from '@/lib/utils/with-timeout';
 import { browser } from 'wxt/browser';
 import { hasPlatformAccess } from './access';
 import { OPTIONAL_ORIGINS, platformFromUrl } from './platforms';
@@ -31,22 +32,39 @@ export async function ensurePlatformBridge(
   url: string,
 ): Promise<void> {
   const platform = platformFromUrl(url);
-  if (!platform || platform === 'youtube') return;
+  if (!platform) return;
   if (!(await hasPlatformAccess(platform)))
     throw new Error(
       `Enable ${platform === 'x' ? 'X' : 'Facebook'} in Darb Settings first.`,
     );
-  await syncPlatformScripts();
+  if (platform !== 'youtube') await syncPlatformScripts();
   try {
-    const response = await browser.tabs.sendMessage(tabId, {
-      type: 'VIDEO_BRIDGE_PING',
-    });
+    const response = await withTimeout(
+      browser.tabs.sendMessage(tabId, { type: 'VIDEO_BRIDGE_PING' }),
+      1500,
+      'Video bridge did not respond.',
+    );
     if (response?.ok) return;
   } catch {
     /* Already-open pages need injection after access is granted. */
   }
-  await browser.scripting.executeScript({
-    target: { tabId },
-    files: ['/content-scripts/social.js'],
-  });
+  try {
+    await browser.scripting.executeScript({
+      target: { tabId },
+      files: [
+        platform === 'youtube'
+          ? '/content-scripts/content.js'
+          : '/content-scripts/social.js',
+      ],
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /cannot access|permission|not allowed/i.test(error.message)
+    )
+      throw new Error(
+        'Darb cannot access this video. Allow access to this site in your browser’s extension settings, reload Darb, then refresh the video page.',
+      );
+    throw error;
+  }
 }

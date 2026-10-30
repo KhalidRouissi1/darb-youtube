@@ -5,3 +5,17 @@ coverage/
 *.zip
 *.log
 .DS_Store
+
+# Private assistant connection keys and learning exports
+darb-connection*.json
+darb-snapshot*.json
+
+# Generated npm package output
+packages/darb-mcp/dist/
+*.tgz
+
+# Internal planning and founder material stay outside the public source
+/docs/marketing/
+/docs/*-plan.md
+/docs/*-implementation.md
+/marketing-private/

@@ -78,19 +78,22 @@ Use the repository's
 Useful commands:
 
 ```bash
+npm run audit:unused
 npm run typecheck
 npm test
 npm run build
 ```
 
-Run all three before opening a pull request.
+Run these checks before opening a pull request. Companion changes also require
+`npm run test:mcp-package`.
 
 ## Engineering rules
 
 - Keep browser permissions as narrow as possible.
 - Keep persistent mutations in the background worker.
 - Validate stored data and runtime messages at their boundaries.
-- Keep YouTube player and navigation code inside `src/lib/youtube`.
+- Keep shared playback/navigation code in `src/lib/video` and platform metadata
+  in `src/lib/platforms` or `src/lib/youtube`.
 - Treat tab changes, browser restarts, and YouTube's client-side navigation as
   normal behavior.
 - Preserve local-only storage unless a proposal explicitly discusses consent,

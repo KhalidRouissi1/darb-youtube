@@ -103,6 +103,12 @@ export function CourseDetail({
               </PrimaryButton>
               <a
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e5e5eb] px-4 text-xs font-semibold text-ink transition hover:bg-[#f8f8fb] dark:border-white/10 dark:text-white dark:hover:bg-white/5"
+                href="#video-notes"
+              >
+                Video notes
+              </a>
+              <a
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#e5e5eb] px-4 text-xs font-semibold text-ink transition hover:bg-[#f8f8fb] dark:border-white/10 dark:text-white dark:hover:bg-white/5"
                 href={course.videoUrl}
                 rel="noreferrer"
                 target="_blank"

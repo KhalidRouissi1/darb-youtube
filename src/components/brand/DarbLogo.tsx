@@ -16,7 +16,7 @@ export function DarbLogo({
         <>
           <span
             className={`text-[18px] font-bold tracking-[-0.03em] ${
-              inverse ? 'text-white' : 'text-ink'
+              inverse ? 'text-white' : 'text-ink dark:text-white'
             }`}
           >
             Darb

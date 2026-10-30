@@ -4,7 +4,7 @@ const platformSchema = z.enum(['youtube', 'x', 'facebook']).default('youtube');
 
 const isoDateSchema = z.string().datetime();
 
-export const courseSessionSchema = z
+const courseSessionSchema = z
   .object({
     id: z.string().min(1),
     courseId: z.string().min(1),
@@ -155,6 +155,7 @@ export const settingsSchema = z.object({
 
 export const activePlaybackSchema = z
   .object({
+    playlistId: z.string().optional(),
     platform: platformSchema,
     activationId: z.string().min(1),
     tabId: z.number().int().nonnegative(),

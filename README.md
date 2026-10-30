@@ -1,273 +1,153 @@
-<p align="center">
-  <img src="public/icon-128.png" width="96" alt="Darb logo" />
-</p>
-
+<p align="center"><img src="public/icon-128.png" width="88" alt="Darb logo" /></p>
 <h1 align="center">Darb · درب</h1>
-
-<p align="center">
-  <strong>Turn the YouTube course you saved into the course you finish.</strong>
-</p>
-
-<p align="center">
-  Darb splits long YouTube videos into focused learning sessions, remembers
-  where you stopped, and brings you back to the right lesson every time.
-</p>
-
+<p align="center"><strong>Turn the YouTube course you saved into the course you finish.</strong></p>
 <p align="center">
   <a href="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml"><img src="https://github.com/KhalidRouissi1/darb-youtube/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
-  <a href="https://github.com/KhalidRouissi1/darb-youtube/releases/latest"><img src="https://img.shields.io/github/v/release/KhalidRouissi1/darb-youtube?color=f97316" alt="Latest GitHub release" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f97316" alt="MIT license" /></a>
-  <a href="https://buymeacoffee.com/khalidrouissi"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-support%20Darb-FFDD00?logo=buymeacoffee&amp;logoColor=000000" alt="Support Darb on Buy Me a Coffee" /></a>
-  <img src="https://img.shields.io/badge/data-local%20only-16a34a" alt="Data stays local" />
-  <img src="https://img.shields.io/badge/account-not%20required-334155" alt="No account required" />
+  <a href="https://github.com/KhalidRouissi1/darb-youtube/releases/latest"><img src="https://img.shields.io/github/v/release/KhalidRouissi1/darb-youtube?color=f15a24" alt="Latest release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f15a24" alt="MIT license" /></a>
 </p>
 
-## The problem
-
-A six-hour YouTube course looks useful when you save it. It looks impossible
-when you try to finish it.
-
-You lose your timestamp, forget which lesson comes next, open another tab, and
-eventually start over. YouTube remembers the video; it does not give you a
-learning plan.
-
-Darb does. Choose how long you want to study each day and Darb turns the video
-into a course you can make steady progress through.
+A six-hour course is easier to return to when you know your next step. Choose a
+study duration and Darb splits the video into sessions, saves your place and
+helps you continue from the lesson you're actually working on.
 
 ## Install
 
-### Chrome, Brave, and Edge
+**Check your version:** the current source targets extension 0.5.4. Published
+GitHub/store packages can be older and may not include the workspace or assistant
+features below. Check the version on the download page and [changelog](CHANGELOG.md).
 
-1. Download `darb-*-chromium.zip` from the
-   [latest GitHub release](https://github.com/KhalidRouissi1/darb-youtube/releases/latest).
-2. Extract the ZIP into a permanent folder. Do not delete this folder after
-   installation.
-3. Open `chrome://extensions`, `brave://extensions`, or `edge://extensions`.
-4. Enable **Developer mode**.
-5. Select **Load unpacked** and choose the extracted folder.
-6. Pin Darb to the browser toolbar.
+### Chrome, Brave and Edge
 
-This short [video installation guide](https://www.youtube.com/watch?v=yNFwFQrc27Q)
-shows the same process. Local installations do not update automatically, so
-check the [releases page](https://github.com/KhalidRouissi1/darb-youtube/releases)
-for new versions.
+1. Download `darb-*-chromium.zip` from [GitHub Releases](https://github.com/KhalidRouissi1/darb-youtube/releases/latest).
+2. Extract it into a permanent folder. Keep that folder after installation.
+3. Open `chrome://extensions`, `brave://extensions` or `edge://extensions`.
+4. Enable **Developer mode**, choose **Load unpacked**, and select the extracted
+   folder containing `manifest.json`. Select the folder, not the ZIP.
+5. Pin Darb, open a recorded YouTube video and click the extension.
+
+Unpacked installations do not update automatically. For an update, replace the
+files in the same permanent folder, reload the existing extension entry and
+refresh already-open video pages. Removing the extension can erase local data.
 
 ### Firefox
 
-Darb `0.1.0` has been submitted to Mozilla Add-ons. The signed installation
-link will be added here after Mozilla approves the listing.
+Install the signed version from [Mozilla Add-ons](https://addons.mozilla.org/en-US/firefox/addon/darb/).
+The store version may differ from this source checkout. Permanent Firefox installs
+require a Mozilla-signed package; a locally built ZIP is for submission/testing.
 
-### Build from source
+## Start learning
 
-```bash
+1. Open an individual YouTube video.
+2. Choose **Study per day**: 15, 20, 30, 45, 60 or a custom number of minutes.
+3. Create the course and start a session.
+4. Return through Darb to resume from the saved checkpoint. The video pauses at
+   the session boundary; continuing reuses its learning tab.
+
+Open the dashboard from any website to find your saved courses.
+
+## Build a learning path
+
+- **Playlists:** enter **Select videos on YouTube**, select video cards, then save
+  a local playlist. Rename it, follow the current-video cursor and see what's next.
+  Natural video endings record completion and advance the playlist.
+- **Video notes:** save a note at the current player time and click it to return
+  to that moment. Toggle **Floating note mode** in the popup for an on-page bubble.
+- **Workspace:** organize courses, playlists and notes with nested folders, tags,
+  filters and library views. Choose a destination and press **Move** for bulk moves.
+- **Graph:** explore saved relationships between learning material. It does not
+  infer what you understand or grade your knowledge.
+
+See the [workspace guide](docs/workspace-guide.md).
+
+## Optional AI connection
+
+Connect Codex, Claude Code or another compatible desktop MCP client to the
+courses/playlists you choose to share. Ask for your next session or a study plan.
+Selection drafting and playback requests have separate scopes and need review
+inside Darb. Notes, folders, tags and graph layout are excluded.
+
+Install the companion separately:
+
+```sh
+npm install --global @khalidrouissi/darb-mcp
+darb-mcp --version
+```
+
+[Follow the setup guide](packages/darb-mcp/README.md). The companion has its own
+version: the guided wizard is introduced in 0.5.5; older versions require explicit
+setup options. Check the version available on npm before following wizard steps.
+
+Ordinary study features do not need an AI app, terminal commands or a Darb account.
+The local companion does not provide a model or AI subscription. An assistant
+provider may process the information you choose to share.
+
+## Experimental X and Facebook support
+
+Newer builds support individual recorded X posts and dedicated Facebook video
+pages. Enable platform access in Settings or from the popup's permission prompt.
+Feeds, live streams, Reels, Stories and ambiguous multi-video posts are unsupported.
+This support remains experimental; use YouTube for the primary study workflow.
+
+Darb plays videos on their original websites. It does not download or rehost them.
+
+## Privacy
+
+Courses, progress, notes and settings live in your browser profile. Darb has no
+hosted backend, advertising or telemetry and does not upload your library to the
+developer. Remote thumbnails contact their original hosts. Optional assistant
+sharing can send selected data through your AI client to its model provider.
+
+Deleting a course removes its plan/progress. Deleting a playlist keeps individual
+courses. Deleting a folder moves its material to Inbox. **Reset all local data**
+removes Darb's stored library and settings. There is no automatic cross-device sync.
+
+Read the [privacy policy](docs/privacy.md) and [assistant permissions](docs/mcp-setup.md).
+
+## Development
+
+Requires Node.js 20.19+ (Node.js 24 recommended), npm and a supported browser.
+
+```sh
 git clone https://github.com/KhalidRouissi1/darb-youtube.git
 cd darb-youtube
 npm ci
 npm run build
 ```
 
-Load the generated `.output/chrome-mv3` directory as an unpacked extension.
+Load `.output/chrome-mv3` as an unpacked extension. After rebuilding, reload the
+extension and refresh video tabs. `npm run dev` starts WXT's development browser;
+`web-ext.config.ts` currently selects Brave from `/usr/bin/brave`.
 
-## Experimental X and Facebook support
-
-The 0.2.0 development build adds individual recorded X posts and dedicated
-Facebook video pages. Enable each platform in **Settings → Additional video
-platforms**, or click Darb on a supported page and grant access when prompted.
-Courses and progress remain local. Feeds, live streams, Reels, Stories, and
-ambiguous multi-video posts are unsupported.
-
-Existing YouTube courses migrate automatically with their session checkpoints
-preserved. X/Facebook support requires further installed-extension testing in
-Chrome and Firefox before it can be advertised as stable. Read the
-[implementation and QA notes](docs/multi-platform-qa.md).
-
-## How it works
-
-### 1. Turn a video into a course
-
-Open a regular YouTube video, select Darb, and choose a daily session length:
-15, 20, 30, 45, 60, or any custom number of minutes.
-
-### 2. Learn one session at a time
-
-Darb opens the correct timestamp, tracks the active session, and pauses at its
-boundary. Your course page shows what is complete and what remains.
-
-### 3. Continue from where you actually stopped
-
-Leave halfway through a session and come back later. Darb resumes from the
-saved checkpoint in that session instead of sending you back to the beginning
-of the course.
-
-## What Darb gives you
-
-- **A realistic plan.** Long videos become small, non-overlapping sessions.
-- **Reliable continuation.** Each session keeps its own resume checkpoint.
-- **Visible progress.** See completed sessions, watched time, and time left.
-- **The correct next step.** Continue from your current place in the course.
-- **YouTube-native playback.** Videos stay on YouTube; Darb controls the normal
-  HTML5 player only during an active learning session.
-- **A useful dashboard anywhere.** Open Darb from any website to see all your
-  courses, today's work, activity, and settings.
-- **Local ownership.** Your courses and progress stay inside your browser.
-- **No account or subscription.** Darb has no backend, analytics, advertising,
-  transcript collection, or external AI service.
-
-## A course, not a playlist
-
-Darb is deliberately focused on one job: helping you finish long educational
-videos.
-
-It does not download videos, replace YouTube, or pretend every minute watched
-is meaningful progress. It creates a clear path through the material and keeps
-that path intact across tabs, sessions, and browser restarts.
-
-## Privacy by construction
-
-Darb works without a server. It stores the following in
-`chrome.storage.local`:
-
-- YouTube video details needed to display the course
-- Session timestamps and completion dates
-- Resume checkpoints and overall progress
-- Your Darb settings
-
-Nothing is sent to Darb's developer. Displaying remote thumbnails contacts the
-original thumbnail host; see the privacy policy for details. Deleting a course removes its local plan
-and progress; **Reset all local data** removes every Darb storage key.
-
-Read the complete [privacy policy](docs/privacy.md).
-
-## Browser support
-
-| Browser | Status |
-| --- | --- |
-| Chrome | Installable from GitHub Releases |
-| Brave | Installable from GitHub Releases |
-| Microsoft Edge | Installable from GitHub Releases |
-| Other Chromium browsers | Expected to work through Manifest V3 |
-| Firefox | Submission package ready for AMO |
-
-## Development
-
-Requirements:
-
-- Node.js 20.19 or newer
-- npm
-- A Chromium browser
-
-Start the development browser:
-
-```bash
-npm ci
-npm run dev
-```
-
-The development configuration currently launches Brave from `/usr/bin/brave`.
-If your browser lives elsewhere, update `web-ext.config.ts`.
-
-Run the complete verification suite:
-
-```bash
+```sh
+npm run audit:unused
 npm run typecheck
 npm test
-npm run build
-```
-
-Create the Chrome Web Store archive:
-
-```bash
+npm run test:mcp-package
 npm run zip
+npm run zip:firefox
 ```
 
-Build the Firefox package:
+Browser archives are generated in `.output`. Firefox source reproduction
+instructions are in [FIREFOX_REVIEW.md](FIREFOX_REVIEW.md). Build the companion
+with `npm run build:mcp`; users of the published npm package need no source checkout.
 
-```bash
-npm run build:firefox
-```
+The [architecture guide](docs/architecture.md) explains storage, playback ownership,
+validation and messaging. The background worker serializes durable mutations;
+popup and dashboard send intents rather than independently rewriting progress.
 
-## Architecture
+## Documentation website
 
-Darb is a local-first browser extension built with WXT, React, TypeScript,
-Tailwind CSS, Zustand, and Zod.
+Read the [Darb documentation](https://darb-docs.khalidrouissi7.workers.dev/).
+The website source, recordings and Cloudflare configuration are maintained in
+[darb-docs](https://github.com/KhalidRouissi1/darb-docs).
+The extension and companion build independently of the website.
 
-```text
-YouTube tab
-  → content script reads video state and controls the player
-  → background worker owns the active learning session
-  → validated repository saves progress in browser storage
-  → popup and dashboard react to storage changes
-```
+## Contribute
 
-The important rule is that UI surfaces send intentions; they do not rewrite
-course data independently. The background worker serializes persistent changes,
-and every stored value is validated when read. Activation IDs and sequence
-numbers prevent stale tabs from overwriting newer progress.
+Bug fixes, accessibility, guides, design and focused feature proposals are welcome.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), search [existing issues](https://github.com/KhalidRouissi1/darb-youtube/issues)
+and include reproducible steps plus browser/extension versions in bug reports.
+Never include connection keys or private course exports.
 
-Read the [architecture guide](docs/architecture.md) for the complete runtime
-flow and reliability decisions.
-
-## Project structure
-
-```text
-src/
-├── components/          Shared UI and brand components
-├── entrypoints/
-│   ├── popup/           Video detection and course creation
-│   ├── dashboard/       Courses, activity, and settings
-│   ├── background.ts    Tab orchestration and persistent mutations
-│   └── content.ts       YouTube metadata and playback bridge
-├── features/            Course and settings features
-├── lib/
-│   ├── messaging/       Validated runtime message contracts
-│   ├── storage/         Browser storage repository
-│   ├── youtube/         Player, metadata, and navigation logic
-│   ├── validation/      Runtime schemas
-│   └── utils/           Session and progress calculations
-└── types/               Domain types
-```
-
-## Engineering principles
-
-- Request the smallest browser permissions that can do the job.
-- Keep user data local unless a future feature receives explicit consent.
-- Treat YouTube navigation, tab ownership, and browser restarts as normal
-  behavior rather than edge cases.
-- Validate browser messages and stored data at runtime.
-- Keep session calculations pure and covered by focused tests.
-- Prefer a small reliable learning tool over a crowded feature list.
-
-## Roadmap
-
-The immediate goal is a stable Chrome and Firefox release. After that:
-
-- YouTube chapter-aware splitting
-- Playlist courses
-- Notes, quizzes, and flashcards
-- Learning streaks
-- Markdown and Notion export
-- Optional cloud synchronization
-- Bring-your-own AI integrations
-
-Have a different priority? Open a
-[feature request](https://github.com/KhalidRouissi1/darb-youtube/issues/new/choose)
-and describe the learning problem first.
-
-## Contributing
-
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), keep
-each pull request focused, and include reproduction or verification steps.
-
-Found a bug? [Open an issue](https://github.com/KhalidRouissi1/darb-youtube/issues/new/choose).
-Found a security problem? Follow [SECURITY.md](SECURITY.md).
-
-## Support Darb
-
-If Darb helps you finish a course, you can
-[support its development on Buy Me a Coffee](https://buymeacoffee.com/khalidrouissi).
-Your support helps cover browser-store fees and ongoing maintenance while Darb
-remains free and open source.
-
-## License
-
-Darb is open source under the [MIT License](LICENSE).
+Darb is licensed under [MIT](LICENSE). You can also [support its development](https://buymeacoffee.com/khalidrouissi).

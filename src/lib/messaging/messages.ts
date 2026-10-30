@@ -66,6 +66,8 @@ export type SessionCompletionResponse =
       course: Course;
       nextSession: CourseSession | null;
       progress: CourseProgress;
+      playlist?: { title: string; completed: boolean };
+      nextVideo?: { playlistId: string; videoId: string; title: string };
     }
   | {
       ok: false;

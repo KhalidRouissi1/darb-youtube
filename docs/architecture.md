@@ -87,4 +87,34 @@ legacy records to YouTube, preserves durable session checkpoints and the
 original recovery backup, and clears transient activation records. Every video
 URL is validated against supported platform hosts/routes and its identity.
 
-See [multi-platform QA](multi-platform-qa.md) for evidence and release gates.
+Additional platforms remain experimental and require installed-browser verification before a release advertises them as stable.
+
+## Local playlists and optional MCP
+
+`src/lib/learning` owns validated video references, selection drafts, playlist
+cursors, scoped assistant grants and expiring proposals. They live in the
+separate `darb:learning` storage key; course checkpoints remain in the existing
+course repository. Dashboard and content-script intents pass through the
+background's serialized mutation queue. Content pages receive only the current
+selection, never grants or pairing secrets.
+
+The separate `companion/` Node process serves MCP over stdio. Snapshot mode reads
+one explicitly selected export. Live mode sends authenticated requests over a
+private Unix socket to a browser-launched native messaging process. The extension
+validates grants and executes domain operations; the companion never reads the
+browser's raw profile database. Native messaging is optional, and approvals for
+playlist saves/playback happen inside Darb. See docs/mcp-setup.md.
+
+## Learning workspace
+
+`src/lib/workspace` owns the versioned `darb:workspace` local storage record:
+folders, notes, metadata keyed by stable item references, explicit links, and view
+preferences. Courses and their playback checkpoints retain their existing schema.
+`DARB_WORKSPACE` accepts only extension-page senders and all mutations pass through
+the background mutation queue with revision checks. Reset all removes this record.
+
+`src/features/workspace` renders the library, folder tree, safe Markdown subset,
+and SVG relationship graph. Graph edges derive from saved playlist membership,
+note links, topics, folders and manual links. It does not infer knowledge or
+learning mastery. Notes never enter current snapshots or MCP responses. Explicit
+course timestamps go through the existing owned-tab playback path.

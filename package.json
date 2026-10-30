@@ -1,6 +1,6 @@
 {
   "name": "darb",
-  "version": "0.2.0",
+  "version": "0.5.4",
   "private": true,
   "description": "Turn long YouTube videos into structured, trackable daily courses.",
   "license": "MIT",
@@ -26,9 +26,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run test && npm run build",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "build:mcp": "node scripts/build-mcp.mjs",
+    "pack:mcp": "npm run build:mcp && npm pack ./packages/darb-mcp --pack-destination .output",
+    "test:mcp-package": "node scripts/test-mcp-package.mjs",
+    "audit:unused": "knip --no-progress"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
     "lucide-react": "1.27.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -36,13 +41,16 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/jsdom": "21.1.7",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.2.0",
     "@wxt-dev/module-react": "1.2.2",
+    "esbuild": "0.28.1",
     "jsdom": "26.1.0",
+    "knip": "6.43.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vite": "7.3.6",
