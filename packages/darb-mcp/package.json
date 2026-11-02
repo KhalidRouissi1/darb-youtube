@@ -1,6 +1,6 @@
 {
   "name": "@khalidrouissi/darb-mcp",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Local MCP companion for Darb: shared courses, study plans and approved playback requests.",
   "license": "MIT",
   "type": "module",

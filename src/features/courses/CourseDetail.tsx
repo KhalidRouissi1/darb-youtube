@@ -1,4 +1,4 @@
-import { PLATFORM_LABELS } from '@/lib/video/platforms';
+import { isHackerTubeUrl, PLATFORM_LABELS } from '@/lib/video/platforms';
 import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import {
   ArrowLeft,
@@ -37,6 +37,7 @@ export function CourseDetail({
   onToggleSession,
 }: CourseDetailProps) {
   const progress = calculateCourseProgress(course);
+  const platformLabel = isHackerTubeUrl(course.videoUrl) ? 'HackerTube' : PLATFORM_LABELS[course.platform ?? 'youtube'];
 
   return (
     <div>
@@ -66,14 +67,14 @@ export function CourseDetail({
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-600">
               {course.completed
                 ? 'Course completed'
-                : `${PLATFORM_LABELS[course.platform ?? 'youtube']} course`}
+                : `${platformLabel} course`}
             </p>
             <h1 className="mt-2 max-w-[700px] text-[25px] font-bold leading-tight tracking-[-0.04em] text-ink sm:text-[30px] dark:text-white">
               {course.title}
             </h1>
             <p className="mt-2 text-xs text-muted dark:text-white/45">
               {course.channelName ??
-                PLATFORM_LABELS[course.platform ?? 'youtube']}{' '}
+                platformLabel}{' '}
               · {course.sessions.length} sessions ·{' '}
               {course.sessionLengthMinutes} min/day
             </p>
@@ -113,7 +114,7 @@ export function CourseDetail({
                 rel="noreferrer"
                 target="_blank"
               >
-                Open on {PLATFORM_LABELS[course.platform ?? 'youtube']}
+                Open on {platformLabel}
                 <ExternalLink size={13} />
               </a>
             </div>

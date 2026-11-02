@@ -137,7 +137,8 @@ export default defineBackground(() => {
               sender.frameId === 0 &&
               page &&
               (page.hostname === 'youtube.com' ||
-                page.hostname.endsWith('.youtube.com'));
+                page.hostname.endsWith('.youtube.com') ||
+                page.origin === 'https://hackertube.org');
             const request = message as {
               type: string;
               action?: unknown;
@@ -362,10 +363,10 @@ export default defineBackground(() => {
               if (
                 !tab?.id ||
                 !tab.url ||
-                !/^https:\/\/(?:www\.)?youtube\.com\//.test(tab.url)
+                !/^https:\/\/(?:(?:www\.)?youtube\.com|hackertube\.org)\//.test(tab.url)
               )
                 throw new Error(
-                  'Open YouTube search results or a channel Videos page first.',
+                  'Open YouTube or HackerTube video listings first.',
                 );
               await launchSelection(tab.id);
               return { ok: true };

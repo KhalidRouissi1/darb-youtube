@@ -102,3 +102,6 @@ configuration. Keep the global companion installation in place for live access.
 
 Read the [privacy policy](privacy.md). The bridge is local, but your AI provider
 may process the information returned to its client.
+
+HackerTube snapshot exports require companion 0.5.6 or newer. The local source
+includes this compatibility update; check npm availability before relying on it.

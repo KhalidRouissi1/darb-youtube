@@ -11,6 +11,7 @@ export function readVideoPosition(expected?: {
     !identity ||
     !adapter ||
     !player ||
+    player.seeking ||
     adapter.isAd() ||
     !Number.isFinite(player.currentTime) ||
     !Number.isFinite(player.duration) ||

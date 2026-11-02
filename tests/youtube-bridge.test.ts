@@ -1,3 +1,4 @@
+import * as adapters from '@/lib/platforms/adapter';
 import { createPlaylist, initialLearningState } from '@/lib/learning/model';
 import { readLearning, writeLearning } from '@/lib/learning/repository';
 import { invokeListener } from './runtime-listener';
@@ -510,4 +511,171 @@ it('rejects a premature completion claim and keeps Next video from marking skipp
       ui(),
     ),
   ).toMatchObject({ ok: false });
+});
+
+it('lets explicit activation take over passive startup despite incoming metadata', async () => {
+  const course = createCourse(
+    {
+      platform: 'youtube',
+      videoId: 'qv9PWcc7FJY',
+      videoUrl: watch,
+      title: 'Course',
+      durationSeconds: 3600,
+    },
+    15,
+  );
+  await backgroundHandler({ type: 'CREATE_COURSE', course }, ui());
+  let ready!: () => void;
+  let startingSignal: AbortSignal | undefined;
+  const wait = vi
+    .fn<(signal: AbortSignal) => Promise<HTMLVideoElement>>()
+    .mockImplementationOnce((signal) => {
+      startingSignal = signal;
+      return new Promise((resolve, reject) => {
+        ready = () => resolve(player);
+        signal.addEventListener('abort', () => reject(signal.reason), {
+          once: true,
+        });
+      });
+    })
+    .mockResolvedValue(player);
+  vi.spyOn(adapters, 'adapterForPage').mockReturnValue({
+    platform: 'youtube',
+    findPlayer: () => player,
+    waitForPlayer: wait,
+    isAd: () => false,
+    readMetadata: async () => ({
+      videoId: course.videoId,
+      videoUrl: watch,
+      title: 'Course',
+      durationSeconds: 3600,
+    }),
+  });
+  const opening = backgroundHandler(
+    { type: 'OPEN_SESSION', courseId: course.id, sourceTabId: 7 },
+    ui(),
+  );
+  await vi.waitFor(() => expect(wait).toHaveBeenCalled());
+  document.dispatchEvent(new dom.window.Event('loadedmetadata'));
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(startingSignal?.aborted).toBe(true);
+  ready();
+  expect(await opening).toMatchObject({ ok: true });
+  expect(await getActivePlayback()).toMatchObject({
+    courseId: course.id,
+    tabId: 7,
+  });
+  expect(player.play).toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  'recovers interrupted startup only while the activation is still owned (%s)',
+  async (stillOwned) => {
+    const course = createCourse(
+      {
+        platform: 'youtube',
+        videoId: 'qv9PWcc7FJY',
+        videoUrl: watch,
+        title: 'Course',
+        durationSeconds: 3600,
+      },
+      15,
+    );
+    await backgroundHandler({ type: 'CREATE_COURSE', course }, ui());
+    const wait = vi
+      .fn<(signal: AbortSignal) => Promise<HTMLVideoElement>>()
+      .mockImplementationOnce(async () => {
+        if (!stillOwned) await clearActivePlayback();
+        throw new dom.window.DOMException(
+          'Simulated embed restart',
+          'AbortError',
+        );
+      })
+      .mockResolvedValue(player);
+    vi.spyOn(adapters, 'adapterForPage').mockReturnValue({
+      platform: 'youtube',
+      findPlayer: () => player,
+      waitForPlayer: wait,
+      isAd: () => false,
+      readMetadata: async () => ({
+        videoId: course.videoId,
+        videoUrl: watch,
+        title: 'Course',
+        durationSeconds: 3600,
+      }),
+    });
+    const opening = backgroundHandler(
+      { type: 'OPEN_SESSION', courseId: course.id, sourceTabId: 7 },
+      ui(),
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await opening).toMatchObject({ ok: stillOwned });
+    if (stillOwned) {
+      expect(wait).toHaveBeenCalledTimes(2);
+      expect(await getActivePlayback()).toMatchObject({ courseId: course.id });
+      expect(player.play).toHaveBeenCalled();
+    } else {
+      expect(wait).toHaveBeenCalledTimes(1);
+      expect(await getActivePlayback()).toBeNull();
+      expect(player.play).not.toHaveBeenCalled();
+    }
+  },
+);
+
+it('waits for an embedded seek acknowledgement before completing session activation', async () => {
+  const course = createCourse(
+    {
+      platform: 'youtube',
+      videoId: 'qv9PWcc7FJY',
+      videoUrl: watch,
+      title: 'Course',
+      durationSeconds: 3600,
+    },
+    15,
+  );
+  await backgroundHandler({ type: 'CREATE_COURSE', course }, ui());
+  player.currentTime = 60;
+  let acknowledge!: () => void;
+  const seekTo = vi.fn(
+    (_seconds: number, _signal: AbortSignal, _startPlayback: boolean) =>
+      new Promise<void>((resolve, reject) => {
+        _signal.throwIfAborted();
+        _signal.addEventListener('abort', () => reject(_signal.reason), {
+          once: true,
+        });
+        acknowledge = () => {
+          player.currentTime = 0;
+          resolve();
+        };
+      }),
+  );
+  const embedded = Object.assign(player, { seekTo });
+  vi.spyOn(adapters, 'adapterForPage').mockReturnValue({
+    platform: 'youtube',
+    findPlayer: () => embedded,
+    waitForPlayer: async () => embedded,
+    isAd: () => false,
+    readMetadata: async () => ({
+      videoId: course.videoId,
+      videoUrl: watch,
+      title: 'Course',
+      durationSeconds: 3600,
+    }),
+  });
+  let finished = false;
+  const opening = backgroundHandler(
+    { type: 'OPEN_SESSION', courseId: course.id, sourceTabId: 7 },
+    ui(),
+  ).then((response) => {
+    finished = true;
+    return response;
+  });
+  await vi.waitFor(() =>
+    expect(seekTo).toHaveBeenCalledWith(0, expect.anything(), true),
+  );
+  expect(finished).toBe(false);
+  expect(player.play).not.toHaveBeenCalled();
+  acknowledge();
+  expect(await opening).toMatchObject({ ok: true });
+  expect(player.play).toHaveBeenCalled();
 });

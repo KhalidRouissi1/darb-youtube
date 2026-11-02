@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased — extension 0.5.4
+## Unreleased — extension 0.5.9
+
+- Use a packaged page-world relay for HackerTube iframe communication. Start
+  shows a busy state, rejects repeated clicks and reports connection errors.
+- Confirm embedded seek and playback before reporting session startup, including
+  restarting after playback has passed 00:00 and resuming saved checkpoints.
+- Join overlapping activation attempts and recover interrupted iframe startup
+  only while the same activation still owns its tab. Prevent stale recovery
+  failures from stopping newer sessions.
+- Experimental HackerTube support for embedded video sessions, checkpoints,
+  timestamped notes and local playlist selection.
+- YouTube identity is shared across both sites while source URLs are preserved.
+- Adds access to https://hackertube.org/ and a packaged iframe message bridge.
+- No remote scripts, account integration or video downloads are added.
+
+## Extension 0.5.4
 
 ### Learning workspace
 
@@ -20,7 +35,11 @@
 These changes are in the current source. A release appears on GitHub or a browser
 store only after it is published there.
 
-## MCP companion 0.5.5 — unreleased
+## MCP companion 0.5.6 — unreleased
+
+- Accept HackerTube source URLs in read-only learning snapshots.
+
+## MCP companion 0.5.5
 
 - Interactive `darb-mcp setup` with client, mode, browser and downloaded-file choices.
 - Detect supported bundled Linux Codex desktop executables when the terminal CLI

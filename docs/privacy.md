@@ -1,6 +1,6 @@
 # Darb Privacy Policy
 
-Last updated: October 29, 2026
+Last updated: November 2, 2026
 
 Darb is designed to work without an account or server.
 
@@ -9,7 +9,7 @@ Darb is designed to work without an account or server.
 To provide its course-planning and progress-tracking features, Darb handles
 the following categories of data:
 
-- **Web history:** the URL of a YouTube, X, or Facebook video that the user explicitly turns
+- **Web history:** the URL of a YouTube, HackerTube, X, or Facebook video that the user explicitly turns
   into a Darb course
 - **User activity:** playback position, session completion, and course
   progress for that course
@@ -100,3 +100,14 @@ keeps individual courses and their checkpoints. Deleting a folder moves its
 contents to Inbox; it does not delete the material or reset progress. Deleting a
 note removes that note and its links. **Reset all local data**
 in Settings removes every Darb storage key.
+
+## HackerTube
+
+Darb reads the selected HackerTube video's page title, channel and embedded
+YouTube video ID. When the embed has not loaded its duration, Darb requests
+that selected video's metadata from HackerTube's same-origin `/api/video`
+endpoint without account credentials. Courses retain their HackerTube source URL and YouTube
+identity. Playback controls and timestamps use messages to that page's YouTube
+iframe; Darb does not inject remote scripts or read unrelated frames. Enabling
+the embed API can reload the player once. HackerTube and YouTube process their
+own video requests under their respective policies.

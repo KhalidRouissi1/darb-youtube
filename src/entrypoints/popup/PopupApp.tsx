@@ -1,8 +1,8 @@
+import { version as APP_VERSION } from '../../../package.json';
 import { withTimeout } from '@/lib/utils/with-timeout';
 import { CourseNotes } from '@/features/workspace/Notes';
 import { WorkspaceProvider } from '@/features/workspace/WorkspaceContext';
 import '@/features/workspace/workspace.css';
-import { SELECTION_VERSION } from '@/lib/learning/version';
 import { VideoThumbnail } from '@/components/ui/VideoThumbnail';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -63,6 +63,8 @@ export function PopupApp() {
   const [isSaving, setIsSaving] = useState(false);
   const [startingSelection, setStartingSelection] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const startPending = useRef(false);
 
   const startSelection = async () => {
     setActionError(null);
@@ -152,7 +154,7 @@ export function PopupApp() {
             commit({
               status: 'error',
               message:
-                'Use Select videos on YouTube to build a playlist, or open an individual video to create a course.',
+                'Use Select videos to build a playlist, or open an individual video to create a course.',
             });
             return;
           }
@@ -401,23 +403,42 @@ export function PopupApp() {
   };
 
   const openSession = async (courseId: string) => {
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    const response = await browser.runtime.sendMessage<
-      { type: 'OPEN_SESSION'; courseId: string; sourceTabId?: number },
-      RuntimeMessageResponse
-    >({
-      type: 'OPEN_SESSION',
-      courseId,
-      ...(tab?.id !== undefined ? { sourceTabId: tab.id } : {}),
-    });
+    if (startPending.current) return;
+    startPending.current = true;
+    setIsStarting(true);
+    setActionError(null);
+    try {
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const response = await withTimeout(
+        browser.runtime.sendMessage<
+          { type: 'OPEN_SESSION'; courseId: string; sourceTabId?: number },
+          RuntimeMessageResponse
+        >({
+          type: 'OPEN_SESSION',
+          courseId,
+          ...(tab?.id !== undefined ? { sourceTabId: tab.id } : {}),
+        }),
+        20000,
+        'Starting took too long. Refresh the video page, then try again.',
+      );
 
-    if (response?.ok) {
-      window.close();
-    } else {
-      setActionError(response?.error ?? 'Unable to open this session.');
+      if (response?.ok) {
+        window.close();
+      } else {
+        throw new Error(response?.error ?? 'Unable to open this session.');
+      }
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to start this session. Refresh the video page and retry.',
+      );
+    } finally {
+      startPending.current = false;
+      setIsStarting(false);
     }
   };
 
@@ -465,9 +486,7 @@ export function PopupApp() {
           disabled={startingSelection}
           onClick={() => void startSelection()}
         >
-          {startingSelection
-            ? 'Starting selection…'
-            : 'Select videos on YouTube'}
+          {startingSelection ? 'Starting selection…' : 'Select videos'}
         </button>
         <button
           className="text-xs font-semibold"
@@ -486,7 +505,7 @@ export function PopupApp() {
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-white/95 px-5 py-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <DarbLogo />
-          <span className="text-[10px] text-muted">v{SELECTION_VERSION}</span>
+          <span className="text-[10px] text-muted">v{APP_VERSION}</span>
         </div>
         <button
           aria-label="Open dashboard"
@@ -725,6 +744,7 @@ export function PopupApp() {
             error={actionError}
             onOpenDashboard={openDashboard}
             onStart={openSession}
+            isStarting={isStarting}
           />
           <div className="px-5 pb-5">
             <PopupVideoNotes courses={[state.course]} />
@@ -767,7 +787,7 @@ function ErrorState({
           <Play fill="currentColor" size={18} />
         </div>
         <h1 className="mt-5 text-[22px] font-semibold leading-tight tracking-[-0.035em]">
-          Open a YouTube, X, or Facebook video to begin.
+          Open a YouTube, HackerTube, X, or Facebook video to begin.
         </h1>
         <p className="mt-3 text-xs leading-5 text-white/58">{message}</p>
       </div>
@@ -895,11 +915,13 @@ function CreatedState({
   error,
   onOpenDashboard,
   onStart,
+  isStarting,
 }: {
   course: Course;
   error: string | null;
   onOpenDashboard: (courseId?: string) => Promise<void>;
   onStart: (courseId: string) => Promise<void>;
+  isStarting: boolean;
 }) {
   return (
     <section className="px-5 pb-6 pt-6">
@@ -929,10 +951,18 @@ function CreatedState({
 
       <PrimaryButton
         className="mt-4 w-full"
-        icon={<Play fill="currentColor" size={15} />}
+        icon={
+          isStarting ? (
+            <LoaderCircle className="animate-spin" size={15} />
+          ) : (
+            <Play fill="currentColor" size={15} />
+          )
+        }
+        disabled={isStarting}
+        aria-busy={isStarting}
         onClick={() => void onStart(course.id)}
       >
-        Start first session
+        {isStarting ? 'Starting session…' : 'Start first session'}
       </PrimaryButton>
       <button
         className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e5e5eb] text-xs font-semibold text-ink transition hover:bg-[#f8f8fb]"

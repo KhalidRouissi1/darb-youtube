@@ -1,6 +1,6 @@
 # Firefox reviewer build instructions
 
-This source archive corresponds to Darb version 0.5.4.
+This source archive corresponds to Darb version 0.5.9.
 
 ## Environment
 
@@ -98,3 +98,12 @@ Workspace data stays in local storage and is excluded from MCP and snapshot
 responses. To test, open the dashboard, create a folder and note in Library, then
 open Graph. Course-linked timestamp buttons use the ordinary owned-tab playback
 flow. Moving material or deleting folders preserves course progress.
+
+## HackerTube
+
+The packaged YouTube bridge also runs on https://hackertube.org/. HackerTube
+courses use YouTube video identity with the original HackerTube watch URL.
+Darb enables the iframe player API and sends local postMessage commands to the
+verified embedded YouTube frame. No remote API script is injected. Test card
+selection on the home/search pages and sessions/notes on a dedicated watch
+page after pressing Play. Enabling the API can reload an existing iframe once.

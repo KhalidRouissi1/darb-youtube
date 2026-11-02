@@ -3,7 +3,7 @@
   "name": "io.github.KhalidRouissi1/darb",
   "title": "Darb",
   "description": "Read shared Darb courses and plan learning from a local, read-only snapshot.",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "repository": {
     "url": "https://github.com/KhalidRouissi1/darb-youtube",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "identifier": "@khalidrouissi/darb-mcp",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "transport": {
         "type": "stdio"
       },

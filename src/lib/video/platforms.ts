@@ -22,6 +22,15 @@ export type VideoIdentity = {
   videoId: string;
   videoUrl: string;
 };
+/** HackerTube hosts YouTube embeds; retain YouTube identity for shared progress. */
+export function isHackerTubeUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.origin === 'https://hackertube.org' && !u.username && !u.password;
+  } catch {
+    return false;
+  }
+}
 export function platformFromUrl(value: string): VideoPlatform | null {
   try {
     const url = new URL(value);
@@ -33,6 +42,7 @@ export function platformFromUrl(value: string): VideoPlatform | null {
     )
       return null;
     const host = url.hostname;
+    if (isHackerTubeUrl(value)) return 'youtube';
     if (host === 'youtube.com' || host.endsWith('.youtube.com'))
       return 'youtube';
     if (url.protocol !== 'https:') return null;
@@ -49,6 +59,16 @@ export function parseVideoUrl(value: string): VideoIdentity | null {
   try {
     const url = new URL(value);
     const platform = platformFromUrl(value);
+    if (isHackerTubeUrl(value)) {
+      const match = url.pathname.match(/^\/watch\/([\w-]{11})\/?$/);
+      return match
+        ? {
+            platform: 'youtube',
+            videoId: match[1]!,
+            videoUrl: `https://hackertube.org/watch/${match[1]}`,
+          }
+        : null;
+    }
     if (platform === 'youtube' && url.pathname === '/watch') {
       const id = url.searchParams.get('v');
       if (id && /^[\w-]+$/.test(id))

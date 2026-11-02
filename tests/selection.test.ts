@@ -259,3 +259,16 @@ it('covers the card center and intercepts YouTube document handlers before navig
     );
   expect(navigate).toHaveBeenCalledTimes(1);
 });
+
+it('selects HackerTube cards from their thumbnail without navigating', async () => {
+  dom.reconfigure({url:'https://hackertube.org/'});
+  vi.stubGlobal('HTMLElement',dom.window.HTMLElement);
+  vi.stubGlobal('MutationObserver',dom.window.MutationObserver);
+  document.body.innerHTML='<a class="vcard" href="/watch/abcdefghijk"><div class="thumb"><img alt="Lecture"></div><h3>Lecture</h3></a>';
+  const send=vi.spyOn(browser.runtime,'sendMessage').mockImplementation(async () => ({ok:true,data:{selection:{items:[]}}}));
+  expect(await startSelectionMode()).toBe(1);
+  const event=new dom.window.MouseEvent('click',{bubbles:true,cancelable:true});
+  document.querySelector('img')!.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  await vi.waitFor(() => expect(send).toHaveBeenCalledWith(expect.objectContaining({action:expect.objectContaining({op:'selection.toggle',video:expect.objectContaining({videoUrl:'https://hackertube.org/watch/abcdefghijk'})})})));
+});

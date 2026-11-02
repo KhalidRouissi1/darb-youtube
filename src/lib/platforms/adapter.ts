@@ -2,7 +2,17 @@ import {
   extractYouTubeMetadata,
   waitForVideoElement,
 } from '@/lib/youtube/metadata';
-import { parseVideoUrl, sameVideo } from '@/lib/video/platforms';
+import {
+  hackerTubePlayer,
+  waitForHackerTubePlayer,
+  readHackerTubeMetadata,
+} from './hackertube';
+import type { MediaPlayer } from './media-player';
+import {
+  isHackerTubeUrl,
+  parseVideoUrl,
+  sameVideo,
+} from '@/lib/video/platforms';
 import type { VideoMetadata, VideoPlatform } from '@/types/video';
 export class VideoError extends Error {
   constructor(
@@ -16,11 +26,11 @@ export class VideoError extends Error {
     super(message);
   }
 }
-export interface VideoAdapter {
+export interface VideoAdapter<T extends MediaPlayer = MediaPlayer> {
   platform: VideoPlatform;
   readMetadata(): Promise<VideoMetadata>;
-  findPlayer(): HTMLVideoElement | null;
-  waitForPlayer(signal: AbortSignal): Promise<HTMLVideoElement>;
+  findPlayer(): T | null;
+  waitForPlayer(signal: AbortSignal): Promise<T>;
   isAd(): boolean;
 }
 export function xPostRoot(doc: Document, id: string): Element | null {
@@ -90,6 +100,14 @@ export function selectSocialPlayer(
 export function adapterForPage(): VideoAdapter | null {
   const identity = parseVideoUrl(window.location.href);
   if (!identity) return null;
+  if (isHackerTubeUrl(window.location.href))
+    return {
+      platform: 'youtube',
+      findPlayer: hackerTubePlayer,
+      isAd: () => false,
+      waitForPlayer: waitForHackerTubePlayer,
+      readMetadata: readHackerTubeMetadata,
+    };
   if (identity.platform === 'youtube')
     return {
       platform: 'youtube',
@@ -107,7 +125,7 @@ export function adapterForPage(): VideoAdapter | null {
       isAd: () => !!document.querySelector('#movie_player.ad-showing'),
     };
   const platform = identity.platform;
-  const adapter: VideoAdapter = {
+  const adapter: VideoAdapter<HTMLVideoElement> = {
     platform,
     findPlayer: () => {
       const current = parseVideoUrl(window.location.href);

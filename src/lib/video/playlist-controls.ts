@@ -179,7 +179,7 @@ export function installPlaylistControls() {
     }
   }
   const ended = (event: Event) => {
-    if (!currentContext || event.target !== adapterForPage()?.findPlayer())
+    if (!currentContext || (event.type !== 'darb-embedded-ended' && event.target !== adapterForPage()?.findPlayer()))
       return;
     try {
       const position = readVideoPosition({
@@ -193,6 +193,7 @@ export function installPlaylistControls() {
     }
   };
   document.addEventListener('ended', ended, true);
+  document.addEventListener('darb-embedded-ended', ended);
   return {
     async sync() {
       const url = window.location.href;
@@ -228,6 +229,7 @@ export function installPlaylistControls() {
     dispose() {
       disposed = true;
       document.removeEventListener('ended', ended, true);
+      document.removeEventListener('darb-embedded-ended', ended);
       remove();
       browser.storage.onChanged.removeListener(changed);
     },

@@ -4,7 +4,14 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   zip: {
-    excludeSources: ['docs/marketing/**', 'docs/*-plan.md', 'docs/*-implementation.md', 'marketing-private/**', 'darb-connection*.json', 'darb-snapshot*.json'],
+    excludeSources: [
+      'docs/marketing/**',
+      'docs/*-plan.md',
+      'docs/*-implementation.md',
+      'marketing-private/**',
+      'darb-connection*.json',
+      'darb-snapshot*.json',
+    ],
     includeSources: [
       'tests/**',
       'companion/**',
@@ -21,7 +28,7 @@ export default defineConfig({
     name: 'Darb',
     description:
       'Turn long YouTube videos into structured, trackable daily courses.',
-    version: '0.5.4',
+    version: '0.5.9',
     homepage_url: 'https://github.com/KhalidRouissi1/darb-youtube',
     icons: {
       16: 'icon-16.png',
@@ -30,7 +37,7 @@ export default defineConfig({
       128: 'icon-128.png',
     },
     permissions: ['activeTab', 'storage', 'scripting'],
-    host_permissions: ['*://*.youtube.com/*'],
+    host_permissions: ['*://*.youtube.com/*', 'https://hackertube.org/*'],
     optional_permissions: ['notifications', 'nativeMessaging'],
     optional_host_permissions: [
       'https://x.com/*',

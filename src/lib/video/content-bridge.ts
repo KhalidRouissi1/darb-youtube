@@ -1,3 +1,4 @@
+import type { MediaPlayer } from '@/lib/platforms/media-player';
 import { installPlaylistControls } from './playlist-controls';
 import { installFloatingNotes } from './floating-notes';
 import { parseVideoUrl } from './platforms';
@@ -172,7 +173,7 @@ export function startVideoBridge(): void {
   const noteWidget = installFloatingNotes();
   const playlistControls = installPlaylistControls();
   void playlistControls.sync();
-  let lastPlayer: HTMLVideoElement | null = null;
+  let lastPlayer: MediaPlayer | null = null;
   try {
     lastPlayer = adapterForPage()?.findPlayer() ?? null;
   } catch {
@@ -190,7 +191,8 @@ export function startVideoBridge(): void {
     try {
       await restoreSessionTracking();
     } catch {
-      await stopSessionTracking();
+      // A failed passive recovery must not stop a newer explicit activation.
+      // Explicit activation reports its own error to the caller.
     } finally {
       busy = false;
       if (queued) {

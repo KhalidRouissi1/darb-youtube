@@ -103,6 +103,31 @@ it('recovers a single-video tab and creates a course without a playlist', async 
   );
   expect(document.body.textContent).toContain('Start first session');
   expect(document.body.textContent).not.toContain('Darb could not connect');
+  let rejectStart!: (error: Error) => void;
+  send.mockClear();
+  send.mockImplementation(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectStart = reject;
+      }),
+  );
+  const start = Array.from(document.querySelectorAll('button')).find(
+    (b) => b.textContent === 'Start first session',
+  )!;
+  await act(async () => {
+    start.click();
+    start.click();
+  });
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(start.disabled).toBe(true);
+  expect(start.textContent).toContain('Starting session');
+  await act(async () =>
+    rejectStart(new Error('The embedded player did not respond.')),
+  );
+  expect(document.body.textContent).toContain(
+    'The embedded player did not respond.',
+  );
+  expect(start.disabled).toBe(false);
 });
 
 it('changes from browse to a standalone video and then to a different video in the same tab', async () => {

@@ -1,3 +1,4 @@
+import type { MediaPlayer } from '@/lib/platforms/media-player';
 import { withTimeout } from '@/lib/utils/with-timeout';
 import { browser } from 'wxt/browser';
 import { adapterForPage } from '@/lib/platforms/adapter';
@@ -14,10 +15,12 @@ import type {
 } from '@/lib/messaging/messages';
 
 let restoreGeneration = 0;
+let trackedActivationId: string | null = null;
 let controller: AbortController | null = null;
 let saveCheckpoint: (() => Promise<void>) | null = null;
 export async function stopSessionTracking(): Promise<void> {
   restoreGeneration += 1;
+  trackedActivationId = null;
   let pending: Promise<void> | undefined;
   try {
     pending = saveCheckpoint?.();
@@ -30,7 +33,84 @@ export async function stopSessionTracking(): Promise<void> {
   removeCompletionOverlay();
   await pending?.catch(() => undefined);
 }
-export async function restoreSessionTracking(
+// Metadata/player/storage events often arrive while explicit activation is
+// waiting for an iframe. Join that attempt instead of aborting its controller.
+let pendingRestore: {
+  activationId: string | undefined;
+  task: Promise<void>;
+} | null = null;
+export function restoreSessionTracking(
+  options: { attemptPlayback?: boolean; activationId?: string } = {},
+): Promise<void> {
+  if (pendingRestore) {
+    if (
+      !options.activationId ||
+      pendingRestore.activationId === options.activationId
+    )
+      return pendingRestore.task;
+    // A passive restore must not hold an explicit Start behind a seek on a
+    // paused embed. Explicit attempts still serialize with other explicit ones.
+    if (!pendingRestore.activationId) controller?.abort();
+    return pendingRestore.task
+      .catch(() => undefined)
+      .then(() => restoreSessionTracking(options));
+  }
+  const task = restoreSessionTrackingWithRecovery(options);
+  const pending = { activationId: options.activationId, task };
+  pendingRestore = pending;
+  const clearPending = () => {
+    if (pendingRestore === pending) pendingRestore = null;
+  };
+  void task.then(clearPending, clearPending);
+  return task;
+}
+async function restoreSessionTrackingWithRecovery(options: {
+  attemptPlayback?: boolean;
+  activationId?: string;
+}): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await restoreSessionTrackingOnce(options);
+      if (
+        options.activationId &&
+        trackedActivationId !== options.activationId
+      ) {
+        const error = new Error('The player changed during session startup.');
+        error.name = 'AbortError';
+        throw error;
+      }
+      return;
+    } catch (error) {
+      const interrupted =
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        error.name === 'AbortError';
+      if (!interrupted || !options.activationId) throw error;
+      if (attempt >= 2)
+        throw new Error(
+          'The video kept restarting during startup. Refresh the video page and start the session again.',
+        );
+      // Retry an interrupted startup only while this exact session still owns
+      // this tab. A stop, revoked grant, or navigation must never be revived.
+      const response = await browser.runtime.sendMessage({
+        type: 'GET_TAB_ACTIVATION',
+      });
+      const current = parseVideoUrl(window.location.href);
+      if (
+        !response?.ok ||
+        response.playback?.activationId !== options.activationId ||
+        !current ||
+        !sameVideo(response.playback, current)
+      )
+        throw new Error(
+          'The session was cancelled or the video changed. Start it again on the current video.',
+        );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+}
+async function restoreSessionTrackingOnce(
   options: { attemptPlayback?: boolean; activationId?: string } = {},
 ): Promise<void> {
   const stopping = stopSessionTracking();
@@ -99,6 +179,7 @@ export async function restoreSessionTracking(
       terminal ||
       signal.aborted ||
       suspended ||
+      video.seeking ||
       adapter.isAd() ||
       !matches() ||
       Math.abs(video.duration - contentDuration) > 1
@@ -124,6 +205,7 @@ export async function restoreSessionTracking(
       finishing ||
       signal.aborted ||
       suspended ||
+      video.seeking ||
       adapter.isAd() ||
       !matches() ||
       Math.abs(video.duration - contentDuration) > 1
@@ -198,6 +280,7 @@ export async function restoreSessionTracking(
     }
   };
   const tick = () => {
+    if (signal.aborted) return;
     try {
       if (!matches()) {
         void stopSessionTracking();
@@ -222,7 +305,7 @@ export async function restoreSessionTracking(
         suspended = false;
         return;
       }
-      if (terminal || signal.aborted) return;
+      if (terminal || signal.aborted || video.seeking) return;
       contentPosition = video.currentTime;
       if (video.currentTime < playback.startSeconds - 2) {
         video.currentTime = playback.startSeconds;
@@ -237,7 +320,8 @@ export async function restoreSessionTracking(
       )
         void finish().catch(() => undefined);
     } catch {
-      void stopSessionTracking();
+      if (!signal.aborted && controller?.signal === signal)
+        void stopSessionTracking();
     }
   };
   const forceSave = () => {
@@ -251,8 +335,13 @@ export async function restoreSessionTracking(
     Math.min(playback.lastKnownSeconds, playback.endSeconds - 1),
   );
   try {
-    if (Math.abs(video.currentTime - target) > 0.25) video.currentTime = target;
-  } catch {
+    if (video.seekTo) {
+      await video.seekTo(target, signal, Boolean(options.attemptPlayback));
+    } else if (Math.abs(video.currentTime - target) > 0.25)
+      video.currentTime = target;
+  } catch (error) {
+    signal.throwIfAborted();
+    if (video.seekTo) throw error;
     throw new Error('This video cannot seek yet. Press Play and retry.');
   }
   // Wait for the requested position before accepting progress, preventing load-time zeroes.
@@ -272,17 +361,18 @@ export async function restoreSessionTracking(
     document.removeEventListener('visibilitychange', visibility);
     window.clearInterval(timer);
   }
+  trackedActivationId = playback.activationId;
   saveCheckpoint = () => report(true);
   signal.addEventListener('abort', detach, { once: true });
   if (options.attemptPlayback) {
     try {
-      await video.play();
+      await video.play(signal);
     } catch {
       if (!signal.aborted) showPlayNotice(video, signal);
     }
   }
 }
-function showPlayNotice(video: HTMLVideoElement, signal: AbortSignal) {
+function showPlayNotice(video: MediaPlayer, signal: AbortSignal) {
   const notice = document.createElement('div');
   notice.textContent =
     'Darb resumed your session. Press Play on the video to continue.';

@@ -13,7 +13,7 @@ helps you continue from the lesson you're actually working on.
 
 ## Install
 
-**Check your version:** the current source targets extension 0.5.4. Published
+**Check your version:** the current source targets extension 0.5.9. Published
 GitHub/store packages can be older and may not include the workspace or assistant
 features below. Check the version on the download page and [changelog](CHANGELOG.md).
 
@@ -151,3 +151,16 @@ and include reproducible steps plus browser/extension versions in bug reports.
 Never include connection keys or private course exports.
 
 Darb is licensed under [MIT](LICENSE). You can also [support its development](https://buymeacoffee.com/khalidrouissi).
+
+### HackerTube
+
+Darb also works on [HackerTube](https://hackertube.org/). Open a video, then open Darb to create daily sessions. Playback and
+timestamped notes use the embedded YouTube player after it loads. Use
+**Select videos** on HackerTube listings to build a local Darb playlist.
+Videos keep their YouTube identity, so existing courses and notes are reused.
+The local build includes this integration; check store versions before installing.
+
+HackerTube embeds YouTube players. Darb enables the embedded player API, which
+can reload an already-open player once. Unavailable, private, live or
+embedding-restricted videos cannot be used. The integration is experimental. Session startup has been verified in Brave;
+other browser and video edge cases may vary.

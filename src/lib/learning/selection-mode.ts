@@ -30,7 +30,7 @@ const CAPTURE_EVENTS = [
   'mouseup',
 ] as const;
 const CARD_SELECTOR =
-  'ytd-video-renderer,ytd-grid-video-renderer,ytd-rich-item-renderer,yt-lockup-view-model';
+  'ytd-video-renderer,ytd-grid-video-renderer,ytd-rich-item-renderer,yt-lockup-view-model,a.vcard,a.srow,a.next';
 
 async function send(op: string, extra: Record<string, unknown> = {}) {
   const response = await browser.runtime.sendMessage({
@@ -126,6 +126,8 @@ export function cardVideo(card: Element): VideoReference | null {
   )
     return null;
   const links = Array.from(card.querySelectorAll<HTMLAnchorElement>('a[href]'));
+  if (card.tagName === 'A' && card.matches('a[href]'))
+    links.unshift(card as HTMLAnchorElement);
   // Modern channel cards put an empty thumbnail link before the heading.
   // Choose a titled watch link, never let that empty anchor hide the video.
   const candidates = links.filter(
@@ -133,6 +135,7 @@ export function cardVideo(card: Element): VideoReference | null {
   );
   const titleOf = (link: HTMLAnchorElement) =>
     (
+      link.querySelector('h3')?.textContent ||
       link.getAttribute('title') ||
       link.textContent ||
       link.getAttribute('aria-label') ||
@@ -255,8 +258,12 @@ export function stopSelectionMode() {
 }
 export async function startSelectionMode() {
   stopSelectionMode();
-  if (!['www.youtube.com', 'youtube.com'].includes(location.hostname))
-    throw new Error('Open YouTube first.');
+  if (
+    !['www.youtube.com', 'youtube.com', 'hackertube.org'].includes(
+      location.hostname,
+    )
+  )
+    throw new Error('Open YouTube or HackerTube first.');
   active = true;
   selectionWindow = document.defaultView;
   for (const type of CAPTURE_EVENTS)

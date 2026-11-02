@@ -102,12 +102,12 @@ function host(dir: string) {
   };
 }
 describe('MCP companion', () => {
-  it('offers a real read-only stdio session with snapshot provenance', async () => {
+  it.each(['https://www.youtube.com/watch?v=abcdefghijk', 'https://hackertube.org/watch/abcdefghijk'])('offers a real read-only stdio snapshot for %s', async (videoUrl) => {
     const dir = await directory();
     const c = createCourse(
       {
         videoId: 'abcdefghijk',
-        videoUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
+        videoUrl,
         title: 'Course',
         durationSeconds: 3600,
       },

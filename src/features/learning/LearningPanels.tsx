@@ -210,7 +210,7 @@ export function PlaylistPanel({
       <p className="text-sm text-brand-600">Your learning path</p>
       <h1 className="mt-2 text-3xl font-bold">Playlists</h1>
       <p className="mt-3 text-sm text-muted">
-        Select videos on YouTube, then arrange them here. Your place in each
+        Select videos on YouTube or HackerTube, then arrange them here. Your place in each
         course is saved separately.
       </p>
       {error && (
@@ -235,7 +235,7 @@ export function PlaylistPanel({
           Open YouTube
         </button>
         <span className="self-center text-sm text-muted">
-          Click Darb → Select videos on YouTube.
+          Click Darb → Select videos.
         </span>
       </div>
       {state.selection.items.length > 0 && (
@@ -263,7 +263,7 @@ export function PlaylistPanel({
             Build a path worth finishing.
           </h2>
           <p className="mt-3 text-sm text-muted">
-            Choose videos from YouTube search or a channel’s Videos page. Saved
+            Choose videos from YouTube search, channel pages, or HackerTube listings. Saved
             drafts stay here until you review them.
           </p>
         </div>
